@@ -13,6 +13,17 @@ def symexp(x):
     return torch.sign(x) * (torch.exp(torch.abs(x)) - 1)
 
 
+def weighted_mean(loss, weights=None):
+    """Average timestep losses while giving each context its requested mass."""
+    if weights is None:
+        return loss.mean()
+    weights = torch.as_tensor(weights, device=loss.device, dtype=torch.float32).detach()
+    if weights.ndim != 1 or weights.shape[0] != loss.shape[0]:
+        raise ValueError("weights must contain one value per context or minibatch item")
+    per_context_loss = loss.float().reshape(loss.shape[0], -1).mean(dim=-1)
+    return (per_context_loss * weights).sum() / weights.sum().clamp_min(torch.finfo(weights.dtype).eps)
+
+
 class SymLogLoss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -35,7 +46,7 @@ class SymLogTwoHotLoss(nn.Module):
         self.register_buffer(
             'bins', torch.linspace(-20, 20, num_classes), persistent=False)
 
-    def forward(self, output, target):
+    def forward(self, output, target, weights=None):
         target = symlog(target)
         assert target.min() >= self.lower_bound and target.max() <= self.upper_bound
 
@@ -49,7 +60,7 @@ class SymLogTwoHotLoss(nn.Module):
 
         loss = -target_prob * F.log_softmax(output, dim=-1)
         loss = loss.sum(dim=-1)
-        return loss.mean()
+        return weighted_mean(loss, weights)
 
     def decode(self, output):
         return symexp(F.softmax(output, dim=-1) @ self.bins)

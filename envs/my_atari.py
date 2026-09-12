@@ -127,7 +127,11 @@ class Atari(gym.Env):
         #     self._is_init = False
         # else:
         #     _, info = self._env.reset()
-        _, info = self._env.reset()
+        if self._is_init:
+            _, info = self._env.reset(seed=self._seed)
+            self._is_init = False
+        else:
+            _, info = self._env.reset()
         if self._noops:
             for _ in range(self._random.randint(self._noops)):
                 _, _, dead, _ = self._env.step(0)

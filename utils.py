@@ -59,6 +59,8 @@ class WandbLogger:
         # Initialize a W&B run with the given project and path as the run name
         pure_env_name = config.BasicSettings.Env_name.split('/')[-1].split('-')[0]
         run_name = f"{config.Models.WorldModel.Backbone}_{config.Models.Agent.Policy}_{pure_env_name}_seed{config.BasicSettings.Seed}"
+        retrieval_mode = config.JointTrainAgent.get('Retrieval', {}).get('enable', False)
+        run_name += '_Both' if retrieval_mode == 'Both' else ('_O' if retrieval_mode else '_X')
         # Initialize wandb with the complete name (including run ID will be auto-appended by wandb)
         self.run = wandb.init(project=project, config=config, mode=mode, name=run_name)
         self.enabled = mode != 'disabled'

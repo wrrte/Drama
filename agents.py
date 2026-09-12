@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 import torch.distributions as distributions
+from torch.distributions import Normal
 from mamba_ssm.ops.triton.layer_norm import RMSNorm
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -13,14 +14,14 @@ from sub_models.laprop import LaProp
 from pytorch_warmup import LinearWarmup
 # from nfnets import AGC
 
-from sub_models.functions_losses import SymLogTwoHotLoss
+from sub_models.functions_losses import SymLogTwoHotLoss, weighted_mean
 from utils import EMAScalar, is_logging_enabled, metrics_to_floats
 from line_profiler import profile
 from tools import layer_init
 
 def percentile(x, percentage):
     flat_x = torch.flatten(x)
-    kth = int(percentage*len(flat_x))
+    kth = max(1, int(percentage*len(flat_x)))
     per = torch.kthvalue(flat_x, kth).values
     return per
 
@@ -223,7 +224,7 @@ class ActorCriticAgent(nn.Module):
             return env_action, device_action
         return env_action
     @profile
-    def update(self, latent, action, old_logits, context_latent, context_reward, context_termination, reward, termination, logger, global_step):
+    def update(self, latent, action, old_logits, context_latent, context_reward, context_termination, reward, termination, logger, global_step, weights=None):
         '''
         Update policy and value model
         '''
@@ -241,17 +242,17 @@ class ActorCriticAgent(nn.Module):
             lambda_return = calc_lambda_return(reward, value, termination, self.gamma, self.lambd)
 
             # update value function with slow critic regularization
-            value_loss = self.symlog_twohot_loss(raw_value[:, :-1], lambda_return.detach())
-            slow_value_regularization_loss = self.symlog_twohot_loss(raw_value[:, :-1], slow_lambda_return.detach())
+            value_loss = self.symlog_twohot_loss(raw_value[:, :-1], lambda_return.detach(), weights=weights)
+            slow_value_regularization_loss = self.symlog_twohot_loss(raw_value[:, :-1], slow_lambda_return.detach(), weights=weights)
                 
             lower_bound = self.lowerbound_ema(percentile(lambda_return, 0.05))
             upper_bound = self.upperbound_ema(percentile(lambda_return, 0.95))
             S = upper_bound-lower_bound
             norm_ratio = torch.max(torch.ones(1, device=reward.device), S)  # max(1, S) in the paper
             norm_advantage = (lambda_return-value[:, :-1]) / norm_ratio
-            policy_loss = -(log_prob * norm_advantage.detach()).mean()
+            policy_loss = -weighted_mean(log_prob * norm_advantage.detach(), weights)
 
-            entropy_loss = entropy.mean()
+            entropy_loss = weighted_mean(entropy, weights)
 
             loss = policy_loss + value_loss + slow_value_regularization_loss - self.entropy_coef * entropy_loss
 
@@ -281,7 +282,7 @@ class ActorCriticAgent(nn.Module):
 
 
 class PPOAgent(nn.Module):
-    def __init__(self, conf, action_dim, device):
+    def __init__(self, conf, action_dim, device, is_discrete=True):
         super().__init__()
         feat_dim=conf.Models.WorldModel.CategoricalDim*conf.Models.WorldModel.ClassDim+conf.Models.WorldModel.HiddenStateDim
         num_layers=conf.Models.Agent.PPO.NumLayers
@@ -337,7 +338,7 @@ class PPOAgent(nn.Module):
 
         # Log std can be state-dependent or a learned parameter
         # Using state-independent for simplicity (common in PPO)
-        self.actor_log_std = nn.Parameter(torch.zeros(1, action_dim)).to(device)
+        self.actor_log_std = nn.Parameter(torch.zeros(1, action_dim, device=device))
 
         critic = [
             layer_init(nn.Linear(feat_dim, critic_hidden_dim, bias=True)),
@@ -417,31 +418,33 @@ class PPOAgent(nn.Module):
         device_action = action.detach()
         if self.is_discrete:
             device_action = device_action.squeeze(-1)
+        elif device_action.ndim >= 3 and device_action.shape[-2] == 1:
+            device_action = device_action.squeeze(-2)
         env_action = device_action.cpu().numpy()
         if return_device_action:
             return env_action, device_action
         return env_action
 
     @profile
-    def comput_loss(self, latent, action, logp_old, advs, rtgs, slow_return):
+    def comput_loss(self, latent, action, logp_old, advs, rtgs, slow_return, weights=None):
 
         logp, raw_values, entropy = self.get_logp_val_entr(latent, action, longer_value=False)
 
         ratio = torch.exp(logp - logp_old)
         # Kl approx according to http://joschu.net/blog/kl-approx.html
-        kl_apx = ((ratio - 1) - (logp - logp_old)).mean()
+        kl_apx = weighted_mean((ratio - 1) - (logp - logp_old), weights)
     
         clip_advs = torch.clamp(ratio, 1-self.eps_clip, 1+self.eps_clip) * advs
         # Torch Adam implement tation mius the gradient, to plus the gradient, we need make the loss negative
-        actor_loss = -(torch.min(ratio*advs.detach(), clip_advs.detach())).mean()
+        actor_loss = -weighted_mean(torch.min(ratio*advs.detach(), clip_advs.detach()), weights)
 
         # values = values.flatten() # I used squeeze before, maybe a mistake
-        slow_critic_loss = self.symlog_twohot_loss(raw_values, slow_return.detach())
-        critic_loss = self.symlog_twohot_loss(raw_values, rtgs.detach())
+        slow_critic_loss = self.symlog_twohot_loss(raw_values, slow_return.detach(), weights=weights)
+        critic_loss = self.symlog_twohot_loss(raw_values, rtgs.detach(), weights=weights)
         # critic_loss = F.mse_loss(values, rtgs)
         # critic_loss = ((values - rtgs) ** 2).mean()
 
-        entropy_loss = entropy.mean()
+        entropy_loss = weighted_mean(entropy, weights)
 
         return actor_loss, critic_loss, slow_critic_loss, entropy_loss, kl_apx 
 
@@ -495,7 +498,7 @@ class PPOAgent(nn.Module):
 
 
     @profile
-    def update(self, latent, action, old_logits, context_latent, context_reward, context_termination, reward, termination, logger, global_step):
+    def update(self, latent, action, old_logits, context_latent, context_reward, context_termination, reward, termination, logger, global_step, weights=None):
         self.train()
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
             feat_dim = latent.shape[-1]
@@ -518,6 +521,12 @@ class PPOAgent(nn.Module):
                 flatten_old_logp = old_logp.reshape(-1).detach()              # (B*T,)
 
             batch_size = flatten_latent.shape[0]
+            flatten_weights = None
+            if weights is not None:
+                context_weights = torch.as_tensor(weights, device=reward.device, dtype=torch.float32)
+                if context_weights.ndim != 1 or context_weights.shape[0] != latent.shape[0]:
+                    raise ValueError("weights must contain one value per imagined context")
+                flatten_weights = context_weights[:, None].expand_as(reward).reshape(-1)
 
             entropy_loss_list = []
             actor_loss_list = []
@@ -563,7 +572,8 @@ class PPOAgent(nn.Module):
                         flatten_old_logp[minibatch_inds], 
                         flatten_advantages[minibatch_inds], 
                         flatten_returns[minibatch_inds],
-                        flatten_slow_return[minibatch_inds]
+                        flatten_slow_return[minibatch_inds],
+                        weights=flatten_weights[minibatch_inds] if flatten_weights is not None else None,
                     )
                     
                     total_loss = actor_loss + self.c1 * critic_loss + slow_critic_loss - self.c2 * entropy_loss
@@ -622,4 +632,3 @@ class PPOAgent(nn.Module):
                 
                 # For continuous, return mean as "logits" for old_logits compatibility
                 return action, mean
-

@@ -40,6 +40,32 @@ JointTrainAgent:
   Alpha: 1.0 # High focus on penalising high imagine counts regardless of train counts, less probability to be sampled
   Beta: 1.0 # High focus on penalising 
 
+  Retrieval:
+    enable: False # True, False, or "Both": shared warmup followed by concurrent _O/_X runs
+    batch_size_reduction: "retrieved" # anchors, retrieved, or half
+    trigger_mode: "z_score" # absolute or z_score
+    threshold: 1.0
+    z_score_threshold: 3.5
+    anchor_offset: -2
+    hash_bits: 10
+    hash_sample_mode: "probs"
+    use_pca: True
+    max_pca_samples: 100000
+    warmup_steps: 50000 # Both splits before this step; -1 enables dynamic warmup
+    min_warmup_steps: 5000
+    dynamic_warmup_target_steps: 20000
+    max_warmup_steps: 90000
+    ema_alpha: 0.01
+    max_bucket_size: 1000000000
+    max_anchors: 16
+    multiplier: 16
+    target: 16
+    anchor_weight: 0.0625
+    max_contexts: 256
+    global_rebuild_enable: True
+    global_rebuild_threshold: 0.06
+    global_rebuild_cooldown: 2000
+
 Models:
   WorldModel:
     dtype: float32

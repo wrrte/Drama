@@ -301,6 +301,7 @@ class WorldModel(nn.Module):
                 n_layer=config.Models.WorldModel.Mamba.n_layer,
                 stoch_dim=self.stoch_flattened_dim,
                 action_dim=action_dim,
+                is_discrete=is_discrete,
                 dropout_p=config.Models.WorldModel.Dropout,
                 ssm_cfg={
                     'd_state': config.Models.WorldModel.Mamba.ssm_cfg.d_state,
@@ -382,13 +383,25 @@ class WorldModel(nn.Module):
         self.warmup_scheduler = LinearWarmup(self.optimizer, warmup_period=config.Models.WorldModel.Warmup_steps)
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp and config.Models.WorldModel.dtype is not torch.bfloat16)
     @profile
-    def encode_obs(self, obs):
+    def encode_obs(self, obs, sample_mode="random_sample"):
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
             embedding = self.encoder(obs)
             post_logits = self.dist_head.forward_post(embedding)
-            sample = self.stright_throught_gradient(post_logits, sample_mode="random_sample")
+            sample = self.stright_throught_gradient(post_logits, sample_mode=sample_mode)
             flattened_sample = self.flatten_sample(sample)
         return flattened_sample
+
+    @torch.no_grad()
+    def encode_context(self, obs, action, sample_mode="random_sample"):
+        """Encode replay sequences into the features used by the retrieval critic."""
+        with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
+            latent = self.encode_obs(obs, sample_mode=sample_mode)
+            if self.model == 'Transformer':
+                temporal_mask = get_subsequent_mask_with_batch_length(obs.shape[1], latent.device)
+                dist_feat = self.sequence_model(latent, action, temporal_mask)
+            else:
+                dist_feat = self.sequence_model(latent, action)
+            return torch.cat([latent, dist_feat], dim=-1)
     @profile
     def calc_last_dist_feat(self, latent, action, inference_params=None):
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
@@ -458,6 +471,8 @@ class WorldModel(nn.Module):
             # sample = dist.mode()
         elif sample_mode == "probs":
             sample = dist.probs
+        else:
+            raise ValueError(f"Unknown latent sample mode: {sample_mode}")
         return sample
     
     
@@ -478,7 +493,8 @@ class WorldModel(nn.Module):
             scalar_size = (imagine_batch_size, imagine_batch_length)
             self.sample_buffer = torch.zeros(latent_size, dtype=dtype, device=device)
             self.dist_feat_buffer = torch.zeros(hidden_size, dtype=dtype, device=device)
-            self.action_buffer = torch.zeros(scalar_size, dtype=dtype, device=device)
+            action_size = scalar_size if self.is_discrete else (*scalar_size, self.action_dim)
+            self.action_buffer = torch.zeros(action_size, dtype=dtype, device=device)
             self.reward_hat_buffer = torch.zeros(scalar_size, dtype=dtype, device=device)
             self.termination_hat_buffer = torch.zeros(scalar_size, dtype=dtype, device=device)
     @profile
@@ -488,6 +504,7 @@ class WorldModel(nn.Module):
         self.init_imagine_buffer(imagine_batch_size, imagine_batch_length, dtype=self.tensor_dtype, device=self.device)
         self.sequence_model.reset_kv_cache_list(imagine_batch_size, dtype=self.tensor_dtype)
         obs_hat_list = []
+        video_columns = min(imagine_batch_size, 4)
             
         # context
         context_latent = self.encode_obs(sample_obs)
@@ -514,12 +531,12 @@ class WorldModel(nn.Module):
             self.reward_hat_buffer[:, i:i+1] = last_reward_hat
             self.termination_hat_buffer[:, i:i+1] = last_termination_hat
             if log_video:
-                obs_hat_list.append(last_obs_hat[::imagine_batch_size//4] * 255)  # uniform sample vec_env
+                obs_hat_list.append(last_obs_hat[:video_columns] * 255)
 
         if log_video:    
             img_frames = torch.clamp(torch.cat(obs_hat_list, dim=1), 0, 255)
-            img_frames = img_frames.permute(1, 2, 3, 0, 4)
-            img_frames = img_frames.reshape(imagine_batch_length, 3, 64, 64 * 4).cpu().float().detach().numpy().astype(np.uint8)
+            img_frames = rearrange(img_frames, "B T C H W -> T C H (B W)")
+            img_frames = img_frames.cpu().float().detach().numpy().astype(np.uint8)
             logger.log("Imagine/predict_video", img_frames, global_step=global_step)
 
         return torch.cat([self.sample_buffer, self.dist_feat_buffer], dim=-1), self.action_buffer, None, None, self.reward_hat_buffer, self.termination_hat_buffer
@@ -533,8 +550,14 @@ class WorldModel(nn.Module):
         batch_size, seqlen_og, embedding_dim = context_latent.shape
         max_length = imagine_batch_length + seqlen_og
         
-        if self.use_cg:
+        # The vendored graph capture supports scalar discrete actions only.
+        use_cg = self.use_cg and self.is_discrete
+        if use_cg:
             if not hasattr(self.sequence_model, "_decoding_cache"):
+                self.sequence_model._decoding_cache = None
+            cache = self.sequence_model._decoding_cache
+            if cache is not None and cache.max_batch_size != imagine_batch_size:
+                # Mamba recurrent state has a fixed batch axis, including when shrinking.
                 self.sequence_model._decoding_cache = None
             self.sequence_model._decoding_cache = update_graph_cache(
                 self.sequence_model,
@@ -554,7 +577,7 @@ class WorldModel(nn.Module):
         def get_hidden_state(samples, action, inference_params):
             decoding = inference_params.seqlen_offset > 0
 
-            if not self.use_cg or not decoding:
+            if not use_cg or not decoding:
                 hidden_state = self.sequence_model(
                     samples, action,
                     inference_params=inference_params,
@@ -575,7 +598,7 @@ class WorldModel(nn.Module):
             if inference_params.seqlen_offset >= max_length:
                 return True
             return False
-        with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp and not self.use_cg):
+        with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp and not use_cg):
             with torch.inference_mode():
                 context_dist_feat = get_hidden_state(context_latent, sample_action, inference_params)
             inference_params.seqlen_offset += context_dist_feat.shape[1]
@@ -626,16 +649,17 @@ class WorldModel(nn.Module):
 
 
             if log_video:
-                obs_hat = self.image_decoder(self.sample_buffer[::imagine_batch_size//4]) * 255
+                video_columns = min(imagine_batch_size, 4)
+                obs_hat = self.image_decoder(self.sample_buffer[:video_columns]) * 255
                 obs_hat = torch.clamp(obs_hat, 0, 255)
-                img_frames = obs_hat.permute(1, 2, 3, 0, 4)
-                img_frames = img_frames.reshape(imagine_batch_length+1, 3, 64, 64 * 4).cpu().float().detach().numpy().astype(np.uint8)
+                img_frames = rearrange(obs_hat, "B T C H W -> T C H (B W)")
+                img_frames = img_frames.cpu().float().detach().numpy().astype(np.uint8)
                 logger.log("Imagine/predict_video", img_frames, global_step=global_step)
         return torch.cat([self.sample_buffer, self.dist_feat_buffer], dim=-1), self.action_buffer, old_logits_tensor, torch.cat([context_flattened_sample, context_dist_feat], dim=-1), self.reward_hat_buffer, self.termination_hat_buffer
 
 
     @profile
-    def update(self, obs, action, reward, termination, global_step, epoch_step, logger=None, return_metrics=True):
+    def update(self, obs, action, reward, termination, global_step, epoch_step, logger=None, return_metrics=True, return_latent=False):
         self.train()
         batch_size, batch_length = obs.shape[:2]
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
@@ -697,9 +721,13 @@ class WorldModel(nn.Module):
                          
             
 
+        metrics = None
         if return_metrics:
-            return tuple(metrics_to_floats((
+            metrics = tuple(metrics_to_floats((
                 reconstruction_loss, reward_loss, termination_loss,
                 dynamics_loss, dynamics_real_kl_div, representation_loss,
                 representation_real_kl_div, total_loss,
             )))
+        if return_latent:
+            return metrics, torch.cat([flattened_sample.detach(), dist_feat.detach()], dim=-1)
+        return metrics
