@@ -143,6 +143,6 @@ Models:
         HiddenUnits: 512 # Andrychowicz2020 wider critic network seems better  
 Wandb:
   Init:
-    Mode: enabled
+    Mode: online
     Project: Mamba_dreamer
 n: standard
