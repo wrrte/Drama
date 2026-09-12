@@ -402,12 +402,15 @@ def joint_train_world_model_agent(config, logdir,
                     last_rebuild_step = total_steps
                 logger.log("Retrieval/global_rebuild_triggered", float(rebuild), global_step=total_steps)
 
-        if config.Evaluate.DuringTraining and total_steps % (config.Evaluate.EverySteps // config.JointTrainAgent.NumEnvs) == 0:
+        if config.Evaluate.DuringTraining is True and total_steps % (config.Evaluate.EverySteps // config.JointTrainAgent.NumEnvs) == 0:
             _ = eval_episodes(config, world_model, agent, logger, total_steps)
         if config.JointTrainAgent.SaveModels and total_steps % (config.JointTrainAgent.SaveEverySteps // config.JointTrainAgent.NumEnvs) == 0:
             print(colorama.Fore.GREEN + f"Saving model at total steps {total_steps}" + colorama.Style.RESET_ALL)
             torch.save(world_model.state_dict(), f"{logdir}/ckpt/world_model.pth")
             torch.save(agent.state_dict(), f"{logdir}/ckpt/agent.pth")
+
+    if config.Evaluate.DuringTraining == "End":
+        _ = eval_episodes(config, world_model, agent, logger, config.JointTrainAgent.SampleMaxSteps)
 
     env.close()
     if retrieval_mode == "Both":
