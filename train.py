@@ -13,7 +13,7 @@ import colorama
 
 import pandas as pd
 
-from utils import seed_np_torch, WandbLogger
+from utils import seed_np_torch, WandbLogger, is_logging_enabled
 from replay_buffer import ReplayBuffer
 import agents
 from sub_models.world_models import WorldModel
@@ -28,6 +28,7 @@ import ast
 
 @profile
 def train_world_model_step(replay_buffer: ReplayBuffer, world_model: WorldModel, batch_size, batch_length, logger, epoch, global_step):
+    log_metrics = is_logging_enabled(logger)
     epoch_reconstruction_loss_list = []
     epoch_reward_loss_list = []
     epoch_termination_loss_list = []
@@ -38,9 +39,15 @@ def train_world_model_step(replay_buffer: ReplayBuffer, world_model: WorldModel,
     epoch_total_loss_list = []
     for e in range(epoch):
         obs, action, reward, termination = replay_buffer.sample(batch_size, batch_length, imagine=False)
+        metrics = world_model.update(
+            obs, action, reward, termination, global_step=global_step,
+            epoch_step=e, logger=logger, return_metrics=log_metrics,
+        )
+        if not log_metrics:
+            continue
         reconstruction_loss, reward_loss, termination_loss, \
         dynamics_loss, dynamics_real_kl_div, representation_loss, \
-        representation_real_kl_div, total_loss = world_model.update(obs, action, reward, termination, global_step=global_step, epoch_step=e, logger=logger)
+        representation_real_kl_div, total_loss = metrics
 
         epoch_reconstruction_loss_list.append(reconstruction_loss)
         epoch_reward_loss_list.append(reward_loss)
@@ -50,7 +57,7 @@ def train_world_model_step(replay_buffer: ReplayBuffer, world_model: WorldModel,
         epoch_representation_loss_list.append(representation_loss)
         epoch_representation_real_kl_div_list.append(representation_real_kl_div)
         epoch_total_loss_list.append(total_loss)
-    if logger is not None:
+    if log_metrics:
         logger.log("WorldModel/reconstruction_loss", np.mean(epoch_reconstruction_loss_list), global_step=global_step)
         # logger.log("WorldModel/augmented_reconstruction_loss", augmented_reconstruction_loss.item(), global_step=global_step)
         logger.log("WorldModel/reward_loss",np.mean(epoch_reward_loss_list), global_step=global_step)
@@ -73,6 +80,7 @@ def world_model_imagine_data(replay_buffer: ReplayBuffer,
     '''
     world_model.eval()
     agent.eval()
+    log_video = log_video and is_logging_enabled(logger)
     sample_obs, sample_action, sample_reward, sample_termination = replay_buffer.sample(
         imagine_batch_size, imagine_context_length, imagine=True)
     if world_model.model == 'Transformer':
@@ -143,40 +151,51 @@ def joint_train_world_model_agent(config, logdir,
     # sample and train
     for total_steps in tqdm(range(config.JointTrainAgent.SampleMaxSteps // config.JointTrainAgent.NumEnvs), desc='Training'):
         # sample part >>>
+        device_obs = None
+        device_action = None
         if replay_buffer.ready('world_model'):
             world_model.eval()
             agent.eval()
             with torch.no_grad():
                 if len(context_action) == 0:
                     action = env.action_space.sample()
+                    device_action = torch.as_tensor(action, device=world_model.device)
                 else:
-                    context_latent = world_model.encode_obs(torch.cat(list(context_obs), dim=1).to(world_model.device))
-                    model_context_action = np.stack(list(context_action))
+                    context_latent = world_model.encode_obs(torch.cat(list(context_obs), dim=1))
+                    model_context_action = torch.stack(list(context_action))
 
                     # FIXED: Handle both discrete and continuous actions
                     if is_discrete:
                         # Discrete: shape is (L,) -> reshape to (1, L)
-                        model_context_action = rearrange(torch.Tensor(model_context_action).to(world_model.device), "L -> 1 L")
+                        model_context_action = rearrange(model_context_action, "L -> 1 L")
                     else:
                         # Continuous: shape is (L, A) -> reshape to (1, L, A)
-                        model_context_action = rearrange(torch.Tensor(model_context_action).to(world_model.device), "L A -> 1 L A")
+                        model_context_action = rearrange(model_context_action, "L A -> 1 L A")
                     
                     if world_model.model == 'Transformer':
                         prior_flattened_sample, last_dist_feat = world_model.calc_last_dist_feat(context_latent, model_context_action)
                     elif world_model.model == 'Mamba' or world_model.model == 'Mamba2':
                         prior_flattened_sample, last_dist_feat = world_model.calc_last_dist_feat(context_latent, model_context_action)
-                    action = agent.sample_as_env_action(
+                    env_actions, device_actions = agent.sample_as_env_action(
                         torch.cat([prior_flattened_sample, last_dist_feat], dim=-1),
-                        greedy=False
-                    )[0]
+                        greedy=False, return_device_action=True,
+                    )
+                    action = env_actions[0]
+                    device_action = device_actions[0]
 
-            context_obs.append(rearrange(torch.Tensor(current_ob).to(world_model.device), "H W C -> 1 1 C H W")/255)
-            context_action.append(action)
+            # Upload the uint8 image once; keep normalization and context timing unchanged.
+            device_obs = torch.from_numpy(current_ob).to(world_model.device)
+            context_obs.append(rearrange(device_obs.float(), "H W C -> 1 1 C H W")/255)
+            context_action.append(device_action.to(dtype=torch.float32))
         else:
             action = env.action_space.sample()
 
         ob, reward, is_last, info = env.step(action)
-        replay_buffer.append(current_ob, action, reward, info['is_terminal'])
+        replay_buffer.append(
+            device_obs if replay_buffer.store_on_gpu and device_obs is not None else current_ob,
+            device_action if replay_buffer.store_on_gpu and device_action is not None else action,
+            reward, info['is_terminal'],
+        )
 
         sum_reward += reward
         current_ob = ob
@@ -429,4 +448,3 @@ if __name__ == "__main__":
     joint_train_world_model_agent(config, logdir, replay_buffer, world_model, agent, logger)
 
     logger.close()
-

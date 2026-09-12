@@ -6,6 +6,15 @@ from tensorboardX import SummaryWriter
 import wandb
 
 
+def is_logging_enabled(logger):
+    return logger is not None and getattr(logger, "enabled", True)
+
+
+def metrics_to_floats(metrics):
+    """Read scalar metrics with one device-to-host transfer, without their graphs."""
+    return torch.stack([metric.detach().reshape(()) for metric in metrics]).cpu().tolist()
+
+
 def seed_np_torch(seed=20001118):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -52,6 +61,7 @@ class WandbLogger:
         run_name = f"{config.Models.WorldModel.Backbone}_{config.Models.Agent.Policy}_{pure_env_name}_seed{config.BasicSettings.Seed}"
         # Initialize wandb with the complete name (including run ID will be auto-appended by wandb)
         self.run = wandb.init(project=project, config=config, mode=mode, name=run_name)
+        self.enabled = mode != 'disabled'
         # self.run.name = f"{self.run.name}_{self.run.id}"
         self.tag_step = {}
 
@@ -63,6 +73,8 @@ class WandbLogger:
             tag (str): The tag or label for the data being logged.
             value: The data to be logged. It can be a scalar, image, histogram, or video.
         """
+        if not self.enabled:
+            return
         # Log data based on the type
         if "video" in tag:
             # Log video

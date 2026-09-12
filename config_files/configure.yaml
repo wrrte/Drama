@@ -13,8 +13,8 @@ BasicSettings:
 Evaluate:
    EpisodeNum: 10
    NumEnvs: 10
-   DuringTraining: True
-   EverySteps: 1000
+   DuringTraining: False
+   EverySteps: 100000
 
 JointTrainAgent:
   SampleMaxSteps: 105000 # Just to make sure the last episode will finish, no training after 100k
@@ -143,6 +143,6 @@ Models:
         HiddenUnits: 512 # Andrychowicz2020 wider critic network seems better  
 Wandb:
   Init:
-    Mode: disabled
+    Mode: enabled
     Project: Mamba_dreamer
 n: standard

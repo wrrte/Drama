@@ -139,12 +139,14 @@ class ReplayBuffer():
     def append(self, obs, action, reward, termination):
         self.last_pointer = (self.last_pointer + 1) % (self.max_length)
         if self.store_on_gpu:
-            self.obs_buffer[self.last_pointer] = torch.from_numpy(obs)
+            # Reuse tensors already uploaded for the policy context.
+            obs_tensor = obs.detach() if torch.is_tensor(obs) else torch.from_numpy(obs)
+            self.obs_buffer[self.last_pointer] = obs_tensor
+            action_tensor = action.detach() if torch.is_tensor(action) else torch.tensor(action, device=self.device)
             if self.is_discrete:
-                self.action_buffer[self.last_pointer] = torch.tensor(action, device=self.device)
+                self.action_buffer[self.last_pointer] = action_tensor
             else:
                 # Ensure action is a vector
-                action_tensor = torch.tensor(action, device=self.device)
                 if action_tensor.dim() == 0:
                     action_tensor = action_tensor.unsqueeze(0)
                 self.action_buffer[self.last_pointer] = action_tensor

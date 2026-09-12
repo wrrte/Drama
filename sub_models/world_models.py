@@ -21,6 +21,7 @@ from line_profiler import profile
 from torch.distributions.independent import Independent
 import numpy as np
 from tools import weight_init
+from utils import is_logging_enabled, metrics_to_floats
 import cv2
     
 class Encoder(nn.Module):
@@ -634,7 +635,7 @@ class WorldModel(nn.Module):
 
 
     @profile
-    def update(self, obs, action, reward, termination, global_step, epoch_step, logger=None):
+    def update(self, obs, action, reward, termination, global_step, epoch_step, logger=None, return_metrics=True):
         self.train()
         batch_size, batch_length = obs.shape[:2]
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self.use_amp):
@@ -678,7 +679,7 @@ class WorldModel(nn.Module):
         self.lr_scheduler.step()
         self.warmup_scheduler.dampen()
 
-        if (global_step + epoch_step) % self.save_every_steps == 0: # and global_step != 0:
+        if is_logging_enabled(logger) and (global_step + epoch_step) % self.save_every_steps == 0:
             sample_obs = torch.clamp(obs[:3, 0, :]*255, 0, 255).permute(0, 2, 3, 1).cpu().detach().float().numpy().astype(np.uint8)
             sample_obs_hat = torch.clamp(obs_hat[:3, 0, :]*255, 0, 255).permute(0, 2, 3, 1).cpu().detach().float().numpy().astype(np.uint8)
 
@@ -696,6 +697,9 @@ class WorldModel(nn.Module):
                          
             
 
-        return  reconstruction_loss.item(), reward_loss.item(), termination_loss.item(), \
-                dynamics_loss.item(), dynamics_real_kl_div.item(), representation_loss.item(), \
-                representation_real_kl_div.item(), total_loss.item()
+        if return_metrics:
+            return tuple(metrics_to_floats((
+                reconstruction_loss, reward_loss, termination_loss,
+                dynamics_loss, dynamics_real_kl_div, representation_loss,
+                representation_real_kl_div, total_loss,
+            )))

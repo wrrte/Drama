@@ -14,7 +14,7 @@ from pytorch_warmup import LinearWarmup
 # from nfnets import AGC
 
 from sub_models.functions_losses import SymLogTwoHotLoss
-from utils import EMAScalar
+from utils import EMAScalar, is_logging_enabled, metrics_to_floats
 from line_profiler import profile
 from tools import layer_init
 
@@ -215,9 +215,13 @@ class ActorCriticAgent(nn.Module):
                 action = dist.sample()
         return action, logits
 
-    def sample_as_env_action(self, latent, greedy=False):
+    def sample_as_env_action(self, latent, greedy=False, return_device_action=False):
         action, _ = self.sample(latent, greedy)
-        return action.detach().cpu().squeeze(-1).numpy()
+        device_action = action.detach().squeeze(-1)
+        env_action = device_action.cpu().numpy()
+        if return_device_action:
+            return env_action, device_action
+        return env_action
     @profile
     def update(self, latent, action, old_logits, context_latent, context_reward, context_termination, reward, termination, logger, global_step):
         '''
@@ -262,13 +266,16 @@ class ActorCriticAgent(nn.Module):
         self.warmup_scheduler.dampen()
         self.update_slow_critic()
 
-        if logger is not None:
-            logger.log('ActorCritic/policy_loss', policy_loss.item(), global_step=global_step)
-            logger.log('ActorCritic/value_loss', value_loss.item(), global_step=global_step)
-            logger.log('ActorCritic/entropy_loss', -entropy_loss.item(), global_step=global_step)
-            logger.log('ActorCritic/S', S.item(), global_step=global_step)
-            logger.log('ActorCritic/norm_ratio', norm_ratio.item(), global_step=global_step)
-            logger.log('ActorCritic/total_loss', loss.item(), global_step=global_step)
+        if is_logging_enabled(logger):
+            policy_metric, value_metric, entropy_metric, s_metric, norm_metric, total_metric = metrics_to_floats((
+                policy_loss, value_loss, entropy_loss, S, norm_ratio, loss,
+            ))
+            logger.log('ActorCritic/policy_loss', policy_metric, global_step=global_step)
+            logger.log('ActorCritic/value_loss', value_metric, global_step=global_step)
+            logger.log('ActorCritic/entropy_loss', -entropy_metric, global_step=global_step)
+            logger.log('ActorCritic/S', s_metric, global_step=global_step)
+            logger.log('ActorCritic/norm_ratio', norm_metric, global_step=global_step)
+            logger.log('ActorCritic/total_loss', total_metric, global_step=global_step)
 
 
 
@@ -405,13 +412,15 @@ class PPOAgent(nn.Module):
             logits = torch.log(mixed_probs)
         return logits
 
-    def sample_as_env_action(self, latent, greedy=False):
+    def sample_as_env_action(self, latent, greedy=False, return_device_action=False):
         action, _ = self.sample(latent, greedy)
+        device_action = action.detach()
         if self.is_discrete:
-            return action.detach().cpu().squeeze(-1).numpy()
-        else:
-            # Continuous actions: return as numpy array
-            return action.detach().cpu().numpy()
+            device_action = device_action.squeeze(-1)
+        env_action = device_action.cpu().numpy()
+        if return_device_action:
+            return env_action, device_action
+        return env_action
 
     @profile
     def comput_loss(self, latent, action, logp_old, advs, rtgs, slow_return):
@@ -613,5 +622,4 @@ class PPOAgent(nn.Module):
                 
                 # For continuous, return mean as "logits" for old_logits compatibility
                 return action, mean
-
 
