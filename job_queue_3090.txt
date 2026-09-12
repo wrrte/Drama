@@ -1,0 +1,75 @@
+
+python -u train.py -n "Pong-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Pong-v5" -trajectory_path "D_TRAJ/Pong.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Assault-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Assault-v5" -trajectory_path "D_TRAJ/Assault.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "BankHeist-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/BankHeist-v5" -trajectory_path "D_TRAJ/BankHeist.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Jamesbond-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Jamesbond-v5" -trajectory_path "D_TRAJ/Jamesbond.pkl" JointTrainAgent.Retrieval.enable True
+python -u train.py -n "Jamesbond-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Jamesbond-v5" -trajectory_path "D_TRAJ/Jamesbond.pkl" JointTrainAgent.Retrieval.enable False
+
+python -u train.py -n "Jamesbond-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Jamesbond-v5" -trajectory_path "D_TRAJ/Jamesbond.pkl" JointTrainAgent.Retrieval.enable True
+python -u train.py -n "Jamesbond-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Jamesbond-v5" -trajectory_path "D_TRAJ/Jamesbond.pkl" JointTrainAgent.Retrieval.enable False
+
+python -u train.py -n "Kangaroo-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Kangaroo-v5" -trajectory_path "D_TRAJ/Kangaroo.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "KungFuMaster-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/KungFuMaster-v5" -trajectory_path "D_TRAJ/KungFuMaster.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "MsPacman-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/MsPacman-v5" -trajectory_path "D_TRAJ/MsPacman.pkl" JointTrainAgent.Retrieval.enable True
+python -u train.py -n "MsPacman-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/MsPacman-v5" -trajectory_path "D_TRAJ/MsPacman.pkl" JointTrainAgent.Retrieval.enable False
+python -u train.py -n "MsPacman-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/MsPacman-v5" -trajectory_path "D_TRAJ/MsPacman.pkl" JointTrainAgent.Retrieval.enable True
+python -u train.py -n "MsPacman-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/MsPacman-v5" -trajectory_path "D_TRAJ/MsPacman.pkl" JointTrainAgent.Retrieval.enable False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+python -u train.py -n "BattleZone-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/BattleZone-v5" -trajectory_path "D_TRAJ/BattleZone.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "BattleZone-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/BattleZone-v5" -trajectory_path "D_TRAJ/BattleZone.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Krull-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Krull-v5" -trajectory_path "D_TRAJ/Krull.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Krull-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Krull-v5" -trajectory_path "D_TRAJ/Krull.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Qbert-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Qbert-v5" -trajectory_path "D_TRAJ/Qbert.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Alien-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Alien-v5" -trajectory_path "D_TRAJ/Alien.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Assault-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Assault-v5" -trajectory_path "D_TRAJ/Assault.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Amidar-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Amidar-v5" -trajectory_path "D_TRAJ/Amidar.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "BankHeist-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/BankHeist-v5" -trajectory_path "D_TRAJ/BankHeist.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Boxing-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Boxing-v5" -trajectory_path "D_TRAJ/Boxing.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Breakout-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Breakout-v5" -trajectory_path "D_TRAJ/Breakout.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "ChopperCommand-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/ChopperCommand-v5" -trajectory_path "D_TRAJ/ChopperCommand.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "CrazyClimber-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/CrazyClimber-v5" -trajectory_path "D_TRAJ/CrazyClimber.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "DemonAttack-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/DemonAttack-v5" -trajectory_path "D_TRAJ/DemonAttack.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Kangaroo-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Kangaroo-v5" -trajectory_path "D_TRAJ/Kangaroo.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "KungFuMaster-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/KungFuMaster-v5" -trajectory_path "D_TRAJ/KungFuMaster.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Pong-life_done-wm_2L512D8H-100k-seed2000" -seed 2000 -config_path "config_files/STORM.yaml" -env_name "ALE/Pong-v5" -trajectory_path "D_TRAJ/Pong.pkl" JointTrainAgent.Retrieval.enable True
+
+python -u train.py -n "Alien-life_done-wm_2L512D8H-100k-seed2010" -seed 2010 -config_path "config_files/STORM.yaml" -env_name "ALE/Alien-v5" -trajectory_path "D_TRAJ/Alien.pkl" JointTrainAgent.Retrieval.enable True
+
+
+
+
+
