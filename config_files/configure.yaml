@@ -13,8 +13,8 @@ BasicSettings:
 Evaluate:
    EpisodeNum: 10
    NumEnvs: 10
-   DuringTraining: False
-   EverySteps: 100000
+   DuringTraining: True
+   EverySteps: 105000
 
 JointTrainAgent:
   SampleMaxSteps: 105000 # Just to make sure the last episode will finish, no training after 100k
@@ -41,7 +41,7 @@ JointTrainAgent:
   Beta: 1.0 # High focus on penalising 
 
   Retrieval:
-    enable: False # True, False, or "Both": shared warmup, then finish _X before starting _O
+    enable: Both # True, False, or "Both": shared warmup, then finish _X before starting _O
     batch_size_reduction: "retrieved" # anchors, retrieved, or half
     trigger_mode: "z_score" # absolute or z_score
     threshold: 1.0
