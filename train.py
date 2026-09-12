@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from retrieval import RetrievalContextManager
 from training_branches import (parse_retrieval_mode, capture_rng_state,
-                               restore_rng_state, launch_training_branches)
+                               restore_rng_state, launch_training_branches, save_final_models)
 from training_checkpoint import save_branch_checkpoint, load_branch_checkpoint
 
 
@@ -412,6 +412,11 @@ def joint_train_world_model_agent(config, logdir,
     env.close()
     if retrieval_mode == "Both":
         raise ValueError("Retrieval warmup did not finish before SampleMaxSteps; no branches could run")
+    if config.JointTrainAgent.SaveModels or resume_state is not None:
+        # Both children must keep their final result even when periodic saves are disabled.
+        save_final_models(Path(logdir) / "ckpt", world_model, agent,
+                          config.JointTrainAgent.SampleMaxSteps,
+                          filenames=("world_model.pth", "agent.pth"))
 
 
 
