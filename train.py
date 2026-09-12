@@ -21,7 +21,6 @@ from line_profiler import profile
 import yaml
 from envs.my_memory_maze import MemoryMaze
 from envs.my_atari import Atari
-from env.my_dmc import DMControl
 from eval import eval_episodes
 import warnings
 import ast
@@ -107,6 +106,7 @@ def joint_train_world_model_agent(config, logdir,
     elif config.BasicSettings.Env_name.startswith('memory'):
         env = MemoryMaze(config.BasicSettings.Env_name, size=config.BasicSettings.ImageSize, seed=config.BasicSettings.Seed)
     elif config.BasicSettings.Env_name.startswith('dm_'):
+        from envs.my_dmc import DMControl
         # Parse dm_control environment name: dm_domain_task
         # Example: dm_cheetah_run, dm_walker_walk, dm_humanoid_stand
         parts = config.BasicSettings.Env_name.split('_')
@@ -124,6 +124,7 @@ def joint_train_world_model_agent(config, logdir,
         is_discrete = False
     else:
         assert ValueError(f'Unknown environment name: {config.BasicSettings.Env_name}')
+    is_discrete = hasattr(env.action_space, 'n')
     print("Current env: " + colorama.Fore.YELLOW + f"{config.BasicSettings.Env_name}" + colorama.Style.RESET_ALL)
 
     # Benchmark handling (only for Atari)
@@ -390,6 +391,7 @@ if __name__ == "__main__":
     elif config.BasicSettings.Env_name.startswith('memory'):
         dummy_env = MemoryMaze(config.BasicSettings.Env_name)
     elif config.BasicSettings.Env_name.startswith('dm_'):
+        from envs.my_dmc import DMControl
         parts = config.BasicSettings.Env_name.split('_')
         domain_name = parts[1]
         task_name = '_'.join(parts[2:])
