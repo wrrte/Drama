@@ -1,7 +1,7 @@
 
-python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 6010
-python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 6010
-python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 6010
+python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 2010
+python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 2010
+python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 2010
