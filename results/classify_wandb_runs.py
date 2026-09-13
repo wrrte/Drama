@@ -9,6 +9,13 @@ RUN_NAME_RE = re.compile(
     re.IGNORECASE,
 )
 
+MANUAL_EVAL_RETURNS = {
+    "Mamba2_AC_Assault_seed6010_O": 630,
+    "Mamba2_AC_Assault_seed6010_X": 336,
+    "Mamba2_AC_Pong_seed2010_O": 20,
+    "Mamba2_AC_Pong_seed2010_X": 20,
+}
+
 
 def get_config_value(config, path, default="N/A"):
     value = config
@@ -33,6 +40,10 @@ def as_text(value):
     return "N/A" if value is None else value
 
 
+def is_missing(value):
+    return value is None or str(value).strip().lower() in {"", "n/a", "na", "nan", "none"}
+
+
 def main():
     import wandb
 
@@ -50,6 +61,12 @@ def main():
     path = f"{args.entity}/{args.project}"
     print(f"Reading runs from {path} ...")
     runs = wandb.Api().runs(path)
+    existing_scores = {}
+    if os.path.exists(args.output):
+        with open(args.output, newline="", encoding="utf-8") as input_file:
+            for row in csv.DictReader(input_file):
+                existing_scores[row.get("Run ID", "")] = row
+
     rows = []
 
     for run in runs:
@@ -64,6 +81,16 @@ def main():
 
         config = run.config
         summary = run.summary
+        eval_return = as_text(summary.get("evaluate/score", "N/A"))
+        normalized_return = as_text(summary.get("evaluate/normalised_score", "N/A"))
+        if is_missing(eval_return) and run.name in MANUAL_EVAL_RETURNS:
+            eval_return = MANUAL_EVAL_RETURNS[run.name]
+        previous_row = existing_scores.get(run.id, {})
+        if is_missing(eval_return) and not is_missing(previous_row.get("Eval Return")):
+            eval_return = previous_row["Eval Return"]
+        if is_missing(normalized_return) and not is_missing(previous_row.get("Eval Normalized Return")):
+            normalized_return = previous_row["Eval Normalized Return"]
+
         rows.append({
             "Run Name": run.name,
             "Run ID": run.id,
@@ -73,8 +100,8 @@ def main():
             "Game": parsed["game"],
             "Seed": parsed["seed"],
             "Retrieval": parsed["mode"],
-            "Eval Return": as_text(summary.get("evaluate/score", "N/A")),
-            "Eval Normalized Return": as_text(summary.get("evaluate/normalised_score", "N/A")),
+            "Eval Return": eval_return,
+            "Eval Normalized Return": normalized_return,
             "Warmup Steps": as_text(get_config_value(config, "JointTrainAgent.Retrieval.warmup_steps")),
             "Batch Size Reduction": as_text(get_config_value(config, "JointTrainAgent.Retrieval.batch_size_reduction")),
             "Hash Bits": as_text(get_config_value(config, "JointTrainAgent.Retrieval.hash_bits")),
