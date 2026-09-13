@@ -74,9 +74,9 @@ def main():
         if parsed is None:
             print(f"Skipping unrecognized run name: {run.name}")
             continue
-        if parsed["mode"] == "BOTH":
+        if parsed["mode"] == "BOTH" and run.state != "running":
             continue
-        if run.state in {"running", "killed"}:
+        if run.state == "killed":
             continue
 
         config = run.config

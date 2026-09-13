@@ -2,7 +2,7 @@ import argparse
 
 import numpy as np
 import pandas as pd
-from openpyxl.styles import Alignment, Border, Font, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 
 def format_score(value):
@@ -26,27 +26,48 @@ def main():
 
     runs["Created At"] = pd.to_datetime(runs["Created At"], utc=True, errors="coerce").dt.tz_localize(None)
     runs["Eval Return Numeric"] = pd.to_numeric(runs["Eval Return"], errors="coerce")
-    runs = runs[runs["Retrieval"].isin(["O", "X"])].copy()
+    runs = runs[runs["Retrieval"].isin(["O", "X", "BOTH"])].copy()
     if runs.empty:
         raise ValueError("The input CSV contains no O/X runs.")
+
+    running_both = runs[
+        (runs["Retrieval"] == "BOTH")
+        & (runs["State"].astype(str).str.lower() == "running")
+    ].copy()
+    if not running_both.empty:
+        running_both = pd.concat(
+            [running_both.assign(Retrieval="X"), running_both.assign(Retrieval="O")],
+            ignore_index=True,
+        )
+    runs = runs[runs["Retrieval"].isin(["O", "X"])].copy()
+    runs = pd.concat([runs, running_both], ignore_index=True)
 
     # Keep the newest run when the same game, seed, and mode was logged more than once.
     runs = runs.sort_values("Created At").drop_duplicates(
         ["Game", "Seed", "Retrieval"], keep="last"
     )
+    seed_columns = sorted(runs["Seed"].dropna().unique())
     results = runs.pivot_table(
         index=["Game", "Retrieval"],
         columns="Seed",
         values="Eval Return Numeric",
         aggfunc="first",
-    ).reindex(pd.MultiIndex.from_product(
+    ).reindex(columns=seed_columns).reindex(pd.MultiIndex.from_product(
         [sorted(runs["Game"].unique()), ["X", "O"]],
         names=["Game", "Retrieval"],
     ))
     results.columns.name = None
     results = results.reset_index()
-    seed_columns = [column for column in results.columns if column not in ["Game", "Retrieval"]]
     results = results[["Game", "Retrieval"] + sorted(seed_columns)]
+
+    running = runs[runs["State"].astype(str).str.lower() == "running"].pivot_table(
+        index=["Game", "Retrieval"],
+        columns="Seed",
+        values="State",
+        aggfunc="first",
+    ).reindex(index=results.set_index(["Game", "Retrieval"]).index, columns=seed_columns)
+    running.columns.name = None
+    running = running.reset_index(drop=True)
 
     detail = runs.drop(columns=["Eval Return Numeric"])
     detail["Eval Return"] = detail["Eval Return"].map(format_score)
@@ -59,7 +80,6 @@ def main():
         detail.to_excel(writer, sheet_name="Runs", index=False)
         for worksheet in writer.book.worksheets:
             worksheet.freeze_panes = "A2"
-            worksheet.auto_filter.ref = worksheet.dimensions
             for row in worksheet.iter_rows():
                 for cell in row:
                     cell.font = Font(name="Calibri", size=12, bold=cell.row == 1)
@@ -67,6 +87,22 @@ def main():
             for column_cells in worksheet.columns:
                 width = max(len(str(cell.value or "")) for cell in column_cells)
                 worksheet.column_dimensions[column_cells[0].column_letter].width = min(max(width + 2, 12), 36)
+
+        running_fill = PatternFill(fill_type="solid", fgColor="FFF2CC")
+        results_sheet = writer.book["Results"]
+        for row_index in range(len(running)):
+            for column_index in range(len(seed_columns)):
+                if running.iat[row_index, column_index] == "running":
+                    cell = results_sheet.cell(row=row_index + 2, column=column_index + 3)
+                    cell.value = "RUNNING"
+                    cell.fill = running_fill
+                    cell.font = Font(name="Calibri", size=12, bold=True, color="9C6500")
+
+        runs_sheet = writer.book["Runs"]
+        for row_index, state in enumerate(detail["State"], start=2):
+            if str(state).lower() == "running":
+                for column_index in range(1, runs_sheet.max_column + 1):
+                    runs_sheet.cell(row=row_index, column=column_index).fill = running_fill
 
         worksheet = writer.book["Results"]
         top_side = Side(style="medium", color="000000")

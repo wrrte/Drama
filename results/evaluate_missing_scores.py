@@ -126,8 +126,14 @@ def main():
     if not torch.cuda.is_available() or torch.cuda.device_count() <= 5:
         raise RuntimeError("GPU 5 is not available in the current environment.")
     device = torch.device("cuda:5")
-    pending = runs[runs["Eval Return"].map(is_missing)]
-    print(f"Missing scores: {len(pending)}; evaluation device: {device}")
+    missing_scores = runs["Eval Return"].map(is_missing)
+    running_runs = (
+        runs["State"].astype(str).str.lower() == "running"
+        if "State" in runs
+        else pd.Series(False, index=runs.index)
+    )
+    pending = runs[missing_scores & ~running_runs]
+    print(f"Missing scores: {len(pending)}; running runs skipped: {int(running_runs.sum())}; evaluation device: {device}")
 
     for index, row in pending.iterrows():
         mode = str(row["Retrieval"]).upper()
