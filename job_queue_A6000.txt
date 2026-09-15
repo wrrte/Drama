@@ -1,15 +1,2 @@
-
-python train.py --BasicSettings.Env_name ALE/Alien-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Amidar-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Asterix-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Asterix-v5 --BasicSettings.Seed 6010
-python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 6010
-
-
-python train.py --BasicSettings.Env_name ALE/Boxing-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Boxing-v5 --BasicSettings.Seed 6010
-python train.py --BasicSettings.Env_name ALE/Breakout-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Breakout-v5 --BasicSettings.Seed 6010
-python train.py --BasicSettings.Env_name ALE/CrazyClimber-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/CrazyClimber-v5 --BasicSettings.Seed 6010
+python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 6000
+python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 6010
