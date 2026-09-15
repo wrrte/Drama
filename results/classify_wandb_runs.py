@@ -61,22 +61,36 @@ def main():
     path = f"{args.entity}/{args.project}"
     print(f"Reading runs from {path} ...")
     runs = wandb.Api().runs(path)
-    existing_scores = {}
+    existing_rows = {}
     if os.path.exists(args.output):
         with open(args.output, newline="", encoding="utf-8") as input_file:
             for row in csv.DictReader(input_file):
-                existing_scores[row.get("Run ID", "")] = row
+                run_id = row.get("Run ID", "")
+                if run_id:
+                    existing_rows[run_id] = row
 
-    rows = []
+    rows_by_id = existing_rows.copy()
+    added_count = 0
+    updated_count = 0
 
     for run in runs:
+        previous_row = existing_rows.get(run.id)
+        # Running runs must be refreshed, including after they finish.
+        if (
+            previous_row is not None
+            and previous_row.get("State", "").strip().lower() != "running"
+            and run.state != "running"
+        ):
+            continue
         parsed = parse_run_name(run.name)
         if parsed is None:
             print(f"Skipping unrecognized run name: {run.name}")
             continue
         if parsed["mode"] == "BOTH" and run.state != "running":
+            rows_by_id.pop(run.id, None)
             continue
         if run.state == "killed":
+            rows_by_id.pop(run.id, None)
             continue
 
         config = run.config
@@ -85,13 +99,7 @@ def main():
         normalized_return = as_text(summary.get("evaluate/normalised_score", "N/A"))
         if is_missing(eval_return) and run.name in MANUAL_EVAL_RETURNS:
             eval_return = MANUAL_EVAL_RETURNS[run.name]
-        previous_row = existing_scores.get(run.id, {})
-        if is_missing(eval_return) and not is_missing(previous_row.get("Eval Return")):
-            eval_return = previous_row["Eval Return"]
-        if is_missing(normalized_return) and not is_missing(previous_row.get("Eval Normalized Return")):
-            normalized_return = previous_row["Eval Normalized Return"]
-
-        rows.append({
+        rows_by_id[run.id] = {
             "Run Name": run.name,
             "Run ID": run.id,
             "State": run.state,
@@ -108,8 +116,13 @@ def main():
             "Retrieval Target": as_text(get_config_value(config, "JointTrainAgent.Retrieval.target")),
             "Anchor Weight": as_text(get_config_value(config, "JointTrainAgent.Retrieval.anchor_weight")),
             "Created At": run.created_at,
-        })
+        }
+        if previous_row is None:
+            added_count += 1
+        else:
+            updated_count += 1
 
+    rows = list(rows_by_id.values())
     fieldnames = list(rows[0]) if rows else [
         "Run Name", "Run ID", "State", "Backbone", "Policy", "Game", "Seed",
         "Retrieval", "Eval Return", "Eval Normalized Return", "Warmup Steps",
@@ -120,7 +133,7 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"Exported {len(rows)} O/X runs to {args.output}")
+    print(f"Exported {len(rows)} O/X runs to {args.output} ({added_count} new, {updated_count} updated)")
 
 
 if __name__ == "__main__":
