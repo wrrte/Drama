@@ -101,7 +101,7 @@ def main():
     parser.add_argument("--input", default="drama_wandb_runs.csv")
     parser.add_argument("--output", default=None)
     parser.add_argument("--saved-models", default=None)
-    parser.add_argument("--device", default="cuda:5")
+    parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--episodes", type=int, default=10)
     args = parser.parse_args()
 
@@ -121,11 +121,11 @@ def main():
     if missing_columns:
         raise ValueError(f"CSV is missing columns: {sorted(missing_columns)}")
 
-    if args.device != "cuda:5":
-        raise ValueError("This evaluator must use GPU 5. Run with --device cuda:5.")
-    if not torch.cuda.is_available() or torch.cuda.device_count() <= 5:
-        raise RuntimeError("GPU 5 is not available in the current environment.")
-    device = torch.device("cuda:5")
+    if args.device != "cuda:0":
+        raise ValueError("This evaluator must use GPU 0. Run with --device cuda:0.")
+    if not torch.cuda.is_available() or torch.cuda.device_count() <= 0:
+        raise RuntimeError("GPU 0 is not available in the current environment.")
+    device = torch.device("cuda:0")
     missing_scores = runs["Eval Return"].map(is_missing)
     running_runs = (
         runs["State"].astype(str).str.lower() == "running"
