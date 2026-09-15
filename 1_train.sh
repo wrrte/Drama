@@ -10,7 +10,7 @@ if echo "$GPU_NAME" | grep -qi "A6000"; then
 elif echo "$GPU_NAME" | grep -qi "3090"; then
     QUEUE_SUFFIX="3090"
 elif echo "$GPU_NAME" | grep -qi "Blackwell" && echo "$GPU_NAME" | grep -qi "6000"; then
-    QUEUE_SUFFIX="pro6k"
+    QUEUE_SUFFIX="lab6k"
 else
     QUEUE_SUFFIX="default"
 fi

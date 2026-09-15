@@ -53,10 +53,12 @@ def main():
     parser.add_argument("--output", default="drama_wandb_runs.csv")
     args = parser.parse_args()
 
-    api_key_path = os.path.join(os.path.dirname(__file__), ".wandb_api_key")
-    if os.path.exists(api_key_path):
+    api_key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".wandb_api_key"))
+    if os.path.isfile(api_key_path):
         with open(api_key_path, encoding="utf-8") as key_file:
-            wandb.login(key=key_file.read().strip())
+            api_key = key_file.read().strip()
+        if api_key:
+            wandb.login(key=api_key)
 
     path = f"{args.entity}/{args.project}"
     print(f"Reading runs from {path} ...")

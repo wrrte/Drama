@@ -1,9 +1,10 @@
 __pycache__/
 .vscode/
+.ipynb_checkpoints
+.wandb_api_key
 *.lprof
 ckpt/
 runs/
-.ipynb_checkpoints
 wandb/
 test/
 saved_models/

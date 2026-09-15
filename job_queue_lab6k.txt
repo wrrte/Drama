@@ -1,0 +1,5 @@
+python train.py --BasicSettings.Env_name ALE/KungFuMaster-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 710
+python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 710
+python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 3710
