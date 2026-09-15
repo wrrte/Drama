@@ -51,10 +51,35 @@ def load_model_checkpoint(model, checkpoint_path, device):
     model.load_state_dict(state_dict)
 
 
+def resolve_gpu5_device():
+    """Resolve physical GPU 5 to its logical CUDA index after visibility remapping."""
+    visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if visible_devices:
+        visible_ids = [device_id.strip() for device_id in visible_devices.split(",")]
+        if "5" not in visible_ids:
+            raise RuntimeError(
+                "Physical GPU 5 is not visible. "
+                f"CUDA_VISIBLE_DEVICES={visible_devices!r}."
+            )
+        device = torch.device(f"cuda:{visible_ids.index('5')}")
+    else:
+        device = torch.device("cuda:5")
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available in the current environment.")
+    if device.index >= torch.cuda.device_count():
+        raise RuntimeError(
+            f"Resolved GPU 5 to {device}, but only {torch.cuda.device_count()} CUDA device(s) are visible."
+        )
+    return device
+
+
 def evaluate_checkpoint(checkpoint_dir, game, seed, device, episodes):
     # Imports are delayed so CSV-only conversion remains usable without torch startup cost.
     import sys
 
+    device = resolve_gpu5_device()
+    torch.cuda.set_device(device)
     drama_root = Path(__file__).resolve().parents[1]
     if str(drama_root) not in sys.path:
         sys.path.insert(0, str(drama_root))
@@ -101,7 +126,7 @@ def main():
     parser.add_argument("--input", default="drama_wandb_runs.csv")
     parser.add_argument("--output", default=None)
     parser.add_argument("--saved-models", default=None)
-    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--device", default="cuda:5")
     parser.add_argument("--episodes", type=int, default=10)
     args = parser.parse_args()
 
@@ -121,11 +146,10 @@ def main():
     if missing_columns:
         raise ValueError(f"CSV is missing columns: {sorted(missing_columns)}")
 
-    if args.device != "cuda:0":
-        raise ValueError("This evaluator must use GPU 0. Run with --device cuda:0.")
-    if not torch.cuda.is_available() or torch.cuda.device_count() <= 0:
-        raise RuntimeError("GPU 0 is not available in the current environment.")
-    device = torch.device("cuda:0")
+    if args.device != "cuda:5":
+        raise ValueError("This evaluator must use GPU 5. Run with --device cuda:5.")
+    device = resolve_gpu5_device()
+    torch.cuda.set_device(device)
     missing_scores = runs["Eval Return"].map(is_missing)
     running_runs = (
         runs["State"].astype(str).str.lower() == "running"
