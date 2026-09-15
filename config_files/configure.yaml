@@ -41,7 +41,7 @@ JointTrainAgent:
   Beta: 1.0 # High focus on penalising 
 
   Retrieval:
-    enable: Both # True, False, or "Both": shared warmup, then finish _X before starting _O
+    enable: Both # True, False, or "Both": shared warmup, then finish _O before starting _X
     batch_size_reduction: "retrieved" # anchors, retrieved, or half
     trigger_mode: "z_score" # absolute or z_score
     threshold: 1.0
