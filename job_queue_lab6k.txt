@@ -1,4 +1,0 @@
-python train.py --BasicSettings.Env_name ALE/Alien-v5 --BasicSettings.Seed 3290
-python train.py --BasicSettings.Env_name ALE/Amidar-v5 --BasicSettings.Seed 3290
-
-python train.py --BasicSettings.Env_name ALE/BattleZone-v5 --BasicSettings.Seed 3290
