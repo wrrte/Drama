@@ -1,12 +1,18 @@
-python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 6000
-python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 6010
+python train.py --BasicSettings.Env_name ALE/Pong-v5 --BasicSettings.Seed 6010
 
-python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 6000 --JointTrainAgent.Retrieval.enable True
-python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 6010 --JointTrainAgent.Retrieval.enable True
-
-python train.py --BasicSettings.Env_name ALE/BattleZone-v5 --BasicSettings.Seed 6000
-
-python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 6000
 python train.py --BasicSettings.Env_name ALE/DemonAttack-v5 --BasicSettings.Seed 6010
 
 python train.py --BasicSettings.Env_name ALE/Gopher-v5 --BasicSettings.Seed 6010
+
+python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 6000
+python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 6010
+
+python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 6000
+python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 6010
+
+python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 6000
+python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 6010
+
+python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 6000
+python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 6010
+
