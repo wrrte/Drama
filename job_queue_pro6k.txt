@@ -1,4 +1,3 @@
-python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 710
 python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 3710
 python train.py --BasicSettings.Env_name ALE/Amidar-v5 --BasicSettings.Seed 710
 python train.py --BasicSettings.Env_name ALE/Boxing-v5 --BasicSettings.Seed 710

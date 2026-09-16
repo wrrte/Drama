@@ -1,14 +1,16 @@
 import argparse
-import os
 import re
+from decimal import Decimal
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+# Reset only this method's score and delta cells before updating.
 RESET_TABLE_VALUES = True
-BASE_COLUMN = 5
-OURS_COLUMN = 6
+BASE_COLUMN = 6
+OURS_COLUMN = 7
+DELTA_COLUMN = 8
 
 
 def parse_val(value):
@@ -44,81 +46,160 @@ def calc_iqm(values):
     return np.mean(trimmed) if len(trimmed) else np.nan
 
 
-def reset_drama_values(lines):
-    in_table = False
-    table_found = False
-    for index, line in enumerate(lines):
-        if r"\begin{tabular}{lrrrrrrrr}" in line:
-            table_found = True
+def main_table_rows(lines):
+    """Return only data rows belonging to tab:main_performance."""
+    label_index = next(
+        (index for index, line in enumerate(lines) if r"\label{tab:main_performance}" in line
+         and not line.lstrip().startswith("%")),
+        None,
+    )
+    if label_index is None:
+        raise ValueError("Could not find tab:main_performance.")
+
+    expected_header = [
+        "Game", "Random", "Human", "STORM", "STORM+ours", r"$\Delta$",
+        "DRAMA", "DRAMA+ours", r"$\Delta$",
+    ]
+    rows = []
+    header_found = False
+    for index in range(label_index + 1, len(lines)):
+        line = lines[index]
+        if line.lstrip().startswith("%"):
             continue
-        if table_found and r"\midrule" in line:
-            in_table = True
-            continue
-        if in_table and r"\bottomrule" in line:
+        if any(marker in line for marker in (r"\bottomrule", r"\end{tabular}", r"\end{table}")):
+            if header_found:
+                return rows
             break
-        if in_table and "&" in line:
-            parts = line.split("&")
-            if len(parts) >= 9:
-                parts[BASE_COLUMN] = " - "
-                parts[OURS_COLUMN] = " - "
-                lines[index] = "&".join(parts)
+        if "&" not in line:
+            continue
+        body, separator, tail = line.partition(r"\\")
+        parts = body.split("&")
+        if parts[0].strip() == "Game":
+            if [part.strip() for part in parts] != expected_header:
+                raise ValueError("Unexpected column layout in tab:main_performance.")
+            header_found = True
+        elif header_found:
+            if len(parts) != len(expected_header) or not separator:
+                raise ValueError(f"Malformed main performance row at line {index + 1}.")
+            rows.append((index, parts, separator + tail))
+
+    raise ValueError("Could not find the main performance table header and end.")
+
+
+def number_text(cell):
+    # Remove color specifications before extracting numbers (e.g. green!50!black).
+    cell = re.sub(r"\\textcolor\{[^{}]*\}", "", cell)
+    match = re.search(r"[+-]?\d+(?:\.\d+)?", cell.replace(",", ""))
+    return match.group(0) if match else None
+
+
+def metric_name(label):
+    label = label.strip().lstrip("\\")
+    return next(
+        (name for name in ("#Superhuman", "Mean", "Median", "IQM", "Optimality Gap")
+         if label.startswith(name)),
+        None,
+    )
+
+
+def format_delta(base_text, ours_text, metric):
+    if base_text is None or ours_text is None:
+        return "-"
+    # Subtract displayed decimal values exactly so delta agrees with the table.
+    delta = Decimal(ours_text) - Decimal(base_text)
+    if metric and metric != "#Superhuman":
+        text = f"{delta:.3f}"
+    else:
+        text = format(delta, "f")
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
+    if delta == 0:
+        return text.lstrip("-")
+    if delta > 0:
+        text = "+" + text
+    # The color reflects the sign, including for Optimality Gap.
+    color = "green" if delta > 0 else "red"
+    return f"\\textcolor{{{color}}}{{{text}}}"
+
+
+def reset_values(lines):
+    """Clear only this method's baseline, +ours, and delta cells."""
+    for index, parts, ending in main_table_rows(lines):
+        for column in (BASE_COLUMN, OURS_COLUMN, DELTA_COLUMN):
+            parts[column] = " - "
+        lines[index] = "&".join(parts) + ending
     return lines
+
+
+def format_values(lines):
+    for index, parts, ending in main_table_rows(lines):
+        base_text = number_text(parts[BASE_COLUMN])
+        ours_text = number_text(parts[OURS_COLUMN])
+        parts[OURS_COLUMN] = f" {ours_text if ours_text is not None else '-'} "
+        delta = format_delta(base_text, ours_text, metric_name(parts[0]))
+        parts[DELTA_COLUMN] = f" {delta} "
+        lines[index] = "&".join(parts) + ending
+    return lines
+
+
+def update_table(lines, results, reset=True):
+    lines = reset_values(lines.copy()) if reset else lines.copy()
+    hns_values = {BASE_COLUMN: [], OURS_COLUMN: []}
+    for index, parts, ending in main_table_rows(lines):
+        if metric_name(parts[0]):
+            continue
+        game = parts[0].strip()
+        if game in results:
+            parts[BASE_COLUMN] = f" {results[game][0]} "
+            parts[OURS_COLUMN] = f" {results[game][1]} "
+        lines[index] = "&".join(parts) + ending
+
+        random_value = extract_float(parts[1])
+        human_value = extract_float(parts[2])
+        if random_value is None or human_value is None or human_value == random_value:
+            continue
+        # Use the updated scores, never the previous table or delta columns.
+        for column in (BASE_COLUMN, OURS_COLUMN):
+            score_text = number_text(parts[column])
+            if score_text is not None:
+                hns_values[column].append(
+                    (float(score_text) - random_value) / (human_value - random_value)
+                )
+
+    metrics = {"#Superhuman": {}, "Mean": {}, "Median": {}, "IQM": {}, "Optimality Gap": {}}
+    for column, values in hns_values.items():
+        metrics["#Superhuman"][column] = sum(value > 1.0 for value in values) if values else np.nan
+        metrics["Mean"][column] = np.mean(values) if values else np.nan
+        metrics["Median"][column] = np.median(values) if values else np.nan
+        metrics["IQM"][column] = calc_iqm(values)
+        metrics["Optimality Gap"][column] = (
+            np.mean([max(0.0, 1.0 - value) for value in values]) if values else np.nan
+        )
+
+    for index, parts, ending in main_table_rows(lines):
+        metric = metric_name(parts[0])
+        if metric is None:
+            continue
+        for column in (BASE_COLUMN, OURS_COLUMN):
+            value = metrics[metric][column]
+            formatted = "-" if np.isnan(value) else (
+                str(int(value)) if metric == "#Superhuman" else f"{value:.3f}"
+            )
+            parts[column] = f" {formatted} "
+        lines[index] = "&".join(parts) + ending
+
+    return format_values(lines)
+
+
+def reset_drama_values(lines):
+    return reset_values(lines)
 
 
 def format_drama_values(tex_path):
     with open(tex_path, encoding="utf-8") as tex_file:
-        lines = tex_file.readlines()
-
-    def number_text(cell):
-        match = re.search(r"-?\d+\.?\d*", cell)
-        return match.group(0) if match else None
-
-    formatted_lines = []
-    in_table = False
-    table_found = False
-    for line in lines:
-        if r"\begin{tabular}{lrrrrrrrr}" in line:
-            table_found = True
-        elif table_found and r"\midrule" in line:
-            in_table = True
-        elif in_table and r"\bottomrule" in line:
-            in_table = False
-
-        if in_table and "&" in line:
-            parts = line.split("&")
-            if len(parts) >= 9:
-                row_label = parts[0].strip()
-                base_text = number_text(parts[BASE_COLUMN])
-                ours_text = number_text(parts[OURS_COLUMN])
-                if base_text is not None and ours_text is not None:
-                    base_value = float(base_text)
-                    ours_value = float(ours_text)
-                    if base_value == 0:
-                        difference = (
-                            float("inf") if ours_value > 0
-                            else float("-inf") if ours_value < 0
-                            else 0.0
-                        )
-                    else:
-                        difference = (ours_value - base_value) / abs(base_value) * 100
-
-                    lower_is_better = "Optimality Gap" in row_label
-                    improves = difference < 0 if lower_is_better else difference > 0
-                    color = "blue" if improves else "red" if difference else "black"
-                    if color == "black":
-                        formatted = ours_text
-                    elif abs(difference) >= 15.0:
-                        formatted = f"\\textcolor{{{color}}}{{\\textbf{{{ours_text}}}}}"
-                    else:
-                        formatted = f"\\textcolor{{{color}}}{{{ours_text}}}"
-                    parts[OURS_COLUMN] = f" {formatted} "
-                    if OURS_COLUMN == len(parts) - 1:
-                        parts[OURS_COLUMN] += r" \\" + "\n"
-                    line = "&".join(parts)
-        formatted_lines.append(line)
-
+        lines = format_values(tex_file.readlines())
     with open(tex_path, "w", encoding="utf-8") as tex_file:
-        tex_file.writelines(formatted_lines)
+        tex_file.writelines(lines)
 
 
 def load_results(excel_path):
@@ -156,92 +237,27 @@ def load_results(excel_path):
     return results
 
 
-def is_metric_row(line):
-    labels = (r"\#Superhuman", "Mean", "Median", "IQM", "Optimality Gap")
-    return line.strip().startswith(labels)
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Update DRAMA columns in the main performance table.")
+    parser = argparse.ArgumentParser(
+        description="Update DRAMA scores and deltas in the main performance table."
+    )
     script_dir = Path(__file__).resolve().parent
-    parser.add_argument("--excel", default=script_dir / "drama_results.xlsx")
-    parser.add_argument("--tex", default=script_dir.parent.parent / "iclr2027_conference.tex")
+    parser.add_argument("--excel", type=Path, default=script_dir / "drama_results.xlsx")
+    parser.add_argument("--tex", type=Path, default=script_dir.parent.parent / "iclr2027_conference.tex")
     args = parser.parse_args()
 
-    excel_path = Path(args.excel)
-    tex_path = Path(args.tex)
-    if not excel_path.exists():
-        raise FileNotFoundError(f"Excel file not found: {excel_path}")
-    if not tex_path.exists():
-        raise FileNotFoundError(f"TeX file not found: {tex_path}")
+    if not args.excel.exists():
+        raise FileNotFoundError(f"Excel file not found: {args.excel}")
+    if not args.tex.exists():
+        raise FileNotFoundError(f"TeX file not found: {args.tex}")
 
-    results = load_results(excel_path)
-    with open(tex_path, encoding="utf-8") as tex_file:
-        original_lines = tex_file.readlines()
-    lines = reset_drama_values(original_lines.copy()) if RESET_TABLE_VALUES else original_lines.copy()
-
-    hns_values = {BASE_COLUMN: [], OURS_COLUMN: []}
-    for index, original_line in enumerate(original_lines):
-        if is_metric_row(original_line):
-            continue
-        match = re.match(r"^([A-Za-z]+)\s*&", original_line)
-        if not match or match.group(1) == "Game":
-            continue
-
-        parts = original_line.split("&")
-        if len(parts) < 9:
-            continue
-        game = match.group(1)
-        output_parts = lines[index].split("&")
-        if game in results:
-            output_parts[BASE_COLUMN] = f" {results[game][0]} "
-            output_parts[OURS_COLUMN] = f" {results[game][1]} "
-        lines[index] = "&".join(output_parts)
-
-        random_value = extract_float(parts[1])
-        human_value = extract_float(parts[2])
-        if random_value is None or human_value is None or human_value == random_value:
-            continue
-        for column in (BASE_COLUMN, OURS_COLUMN):
-            score = extract_float(parts[column])
-            if score is not None:
-                hns_values[column].append((score - random_value) / (human_value - random_value))
-
-    metrics = {"#Superhuman": {}, "Mean": {}, "Median": {}, "IQM": {}, "Optimality Gap": {}}
-    for column, values in hns_values.items():
-        metrics["#Superhuman"][column] = sum(value > 1.0 for value in values)
-        metrics["Mean"][column] = np.mean(values) if values else np.nan
-        metrics["Median"][column] = np.median(values) if values else np.nan
-        metrics["IQM"][column] = calc_iqm(values)
-        metrics["Optimality Gap"][column] = (
-            np.mean([max(0.0, 1.0 - value) for value in values]) if values else np.nan
-        )
-
-    for index, line in enumerate(lines):
-        metric = next(
-            (
-                name for name in metrics
-                if line.strip().startswith(name if name != "#Superhuman" else r"\#Superhuman")
-            ),
-            None,
-        )
-        if metric is None:
-            continue
-        parts = line.split("&")
-        if len(parts) < 9:
-            continue
-        for column in (BASE_COLUMN, OURS_COLUMN):
-            value = metrics[metric][column]
-            formatted = " - " if np.isnan(value) else (
-                f" {int(value)} " if metric == "#Superhuman" else f" {value:.3f} "
-            )
-            parts[column] = formatted
-        lines[index] = "&".join(parts)
-
-    with open(tex_path, "w", encoding="utf-8") as tex_file:
+    results = load_results(args.excel)
+    with args.tex.open(encoding="utf-8") as tex_file:
+        lines = tex_file.readlines()
+    lines = update_table(lines, results, reset=RESET_TABLE_VALUES)
+    with args.tex.open("w", encoding="utf-8") as tex_file:
         tex_file.writelines(lines)
-    format_drama_values(tex_path)
-    print(f"Successfully updated {tex_path} with DRAMA and DRAMA+ours results.")
+    print(f"Successfully updated {args.tex} with DRAMA scores, metrics, and deltas.")
 
 
 if __name__ == "__main__":
