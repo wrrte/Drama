@@ -118,8 +118,9 @@ def format_delta(base_text, ours_text, metric):
         return text.lstrip("-")
     if delta > 0:
         text = "+" + text
-    # The color reflects the sign, including for Optimality Gap.
-    color = "green" if delta > 0 else "red"
+    # Lower Optimality Gap is better; other metrics improve when they increase.
+    improves = delta < 0 if metric == "Optimality Gap" else delta > 0
+    color = "green" if improves else "red"
     return f"\\textcolor{{{color}}}{{{text}}}"
 
 
