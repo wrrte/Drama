@@ -38,6 +38,7 @@ def extract_float(value):
 
 
 def calc_iqm(values):
+    """Trim 25% from each tail of the pooled game-by-seed HNS values."""
     if not values:
         return np.nan
     values = np.sort(values)
@@ -143,21 +144,31 @@ def format_values(lines):
 
 
 def update_table(lines, results, reset=True):
+    """Render game means, using unrounded per-seed results only for IQM."""
     lines = reset_values(lines.copy()) if reset else lines.copy()
     hns_values = {BASE_COLUMN: [], OURS_COLUMN: []}
+    seed_hns_values = {BASE_COLUMN: [], OURS_COLUMN: []}
     for index, parts, ending in main_table_rows(lines):
         if metric_name(parts[0]):
             continue
         game = parts[0].strip()
         if game in results:
-            parts[BASE_COLUMN] = f" {results[game][0]} "
-            parts[OURS_COLUMN] = f" {results[game][1]} "
+            for column, scores in zip((BASE_COLUMN, OURS_COLUMN), results[game]):
+                parts[column] = f" {format_val(np.mean(scores))} "
         lines[index] = "&".join(parts) + ending
 
         random_value = extract_float(parts[1])
         human_value = extract_float(parts[2])
         if random_value is None or human_value is None or human_value == random_value:
             continue
+        if game in results:
+            # Each matched (game, training seed) contributes one score. Normalize
+            # before pooling; never recover IQM inputs from rounded game means.
+            for column, scores in zip((BASE_COLUMN, OURS_COLUMN), results[game]):
+                seed_hns_values[column].extend(
+                    (score - random_value) / (human_value - random_value)
+                    for score in scores
+                )
         # Use the updated scores, never the previous table or delta columns.
         for column in (BASE_COLUMN, OURS_COLUMN):
             score_text = number_text(parts[column])
@@ -171,7 +182,7 @@ def update_table(lines, results, reset=True):
         metrics["#Superhuman"][column] = sum(value > 1.0 for value in values) if values else np.nan
         metrics["Mean"][column] = np.mean(values) if values else np.nan
         metrics["Median"][column] = np.median(values) if values else np.nan
-        metrics["IQM"][column] = calc_iqm(values)
+        metrics["IQM"][column] = calc_iqm(seed_hns_values[column])
         metrics["Optimality Gap"][column] = (
             np.mean([max(0.0, 1.0 - value) for value in values]) if values else np.nan
         )
@@ -203,6 +214,7 @@ def format_drama_values(tex_path):
 
 
 def load_results(excel_path):
+    """Keep both methods' raw scores for the same valid training seeds."""
     frame = pd.read_excel(excel_path, sheet_name="Results")
     required = {"Game", "Retrieval"}
     if not required.issubset(frame.columns):
@@ -227,12 +239,13 @@ def load_results(excel_path):
             and not np.isnan(parse_val(ours_row[seed]))
         ]
         if common_seeds:
-            baseline_mean = np.mean([parse_val(baseline_row[seed]) for seed in common_seeds])
-            ours_mean = np.mean([parse_val(ours_row[seed]) for seed in common_seeds])
-            results[str(game)] = (format_val(baseline_mean), format_val(ours_mean))
+            baseline_scores = [parse_val(baseline_row[seed]) for seed in common_seeds]
+            ours_scores = [parse_val(ours_row[seed]) for seed in common_seeds]
+            results[str(game)] = (baseline_scores, ours_scores)
             print(
                 f"[{game}] Common seeds: {common_seeds} -> "
-                f"DRAMA: {results[str(game)][0]}, DRAMA+ours: {results[str(game)][1]}"
+                f"DRAMA: {format_val(np.mean(baseline_scores))}, "
+                f"DRAMA+ours: {format_val(np.mean(ours_scores))}"
             )
     return results
 
