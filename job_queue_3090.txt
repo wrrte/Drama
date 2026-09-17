@@ -1,4 +1,0 @@
-python train.py --BasicSettings.Env_name ALE/Assault-v5 --BasicSettings.Seed 2000
-python train.py --BasicSettings.Env_name ALE/KungFuMaster-v5 --BasicSettings.Seed 2000
-python train.py --BasicSettings.Env_name ALE/KungFuMaster-v5 --BasicSettings.Seed 2010
-python train.py --BasicSettings.Env_name ALE/Pong-v5 --BasicSettings.Seed 2000
