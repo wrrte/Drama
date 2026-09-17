@@ -1,9 +1,49 @@
 
-python train.py --BasicSettings.Env_name ALE/Boxing-v5 --BasicSettings.Seed 3710
 python train.py --BasicSettings.Env_name ALE/Pong-v5 --BasicSettings.Seed 3710
 
 python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 3710
 python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 710
+python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 1710
 
 python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 3710
 python train.py --BasicSettings.Env_name ALE/Kangaroo-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/BankHeist-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/BattleZone-v5 --BasicSettings.Seed 1710
+
+python train.py --BasicSettings.Env_name ALE/Breakout-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/Breakout-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/ChopperCommand-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/ChopperCommand-v5 --BasicSettings.Seed 2710
+
+python train.py --BasicSettings.Env_name ALE/CrazyClimber-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/CrazyClimber-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 2710
+
+python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 2710
+
+python train.py --BasicSettings.Env_name ALE/KungFuMaster-v5 --BasicSettings.Seed 1710
+
+python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 2710
+
+python train.py --BasicSettings.Env_name ALE/Qbert-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/Qbert-v5 --BasicSettings.Seed 2710
+
+python train.py --BasicSettings.Env_name ALE/RoadRunner-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/RoadRunner-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 3710
+python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 710
+
+python train.py --BasicSettings.Env_name ALE/UpNDown-v5 --BasicSettings.Seed 1710
+python train.py --BasicSettings.Env_name ALE/UpNDown-v5 --BasicSettings.Seed 2710
+
+
+both 다 끝내는 데 6.5시간
