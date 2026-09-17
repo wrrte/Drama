@@ -43,10 +43,10 @@ Mamba2_AC_Qbert_seed710_X,66c4h08p,finished,Mamba2,AC,Qbert,710,X,480.0,0.023775
 Mamba2_AC_DemonAttack_seed2000_O,pg8ek0ba,finished,Mamba2,AC,DemonAttack,2000,O,136.5,-0.008521165475536,50000,retrieved,10,16,0.0625,2026-09-14T03:38:22Z
 Mamba2_AC_BattleZone_seed710_X,ti91iyzh,finished,Mamba2,AC,BattleZone,710,X,9400.0,0.2021362122430229,50000,retrieved,10,16,0.0625,2026-09-14T03:41:57Z
 Mamba2_AC_Qbert_seed710_O,a54n9otf,finished,Mamba2,AC,Qbert,710,O,810.0,0.0486043187119103,50000,retrieved,10,16,0.0625,2026-09-14T04:14:09Z
-Mamba2_AC_BankHeist_seed6000_X,z0jszbje,crashed,Mamba2,AC,BankHeist,6000,X,,,50000,retrieved,10,16,0.0625,2026-09-14T05:20:12Z
+Mamba2_AC_BankHeist_seed6000_X,z0jszbje,crashed,Mamba2,AC,BankHeist,6000,X,281.0,0.3612990527740189,50000,retrieved,10,16,0.0625,2026-09-14T05:20:12Z
 Mamba2_AC_BattleZone_seed710_O,d1xbki7b,finished,Mamba2,AC,BattleZone,710,O,13600.0,0.3227288388652808,50000,retrieved,10,16,0.0625,2026-09-14T05:33:25Z
 Mamba2_AC_DemonAttack_seed2010_O,mgo4pji4,finished,Mamba2,AC,DemonAttack,2010,O,131.5,-0.0112699285321605,50000,retrieved,10,16,0.0625,2026-09-14T06:25:39Z
-Mamba2_AC_BankHeist_seed6010_X,4b4w07hb,crashed,Mamba2,AC,BankHeist,6010,X,,,50000,retrieved,10,16,0.0625,2026-09-14T07:00:18Z
+Mamba2_AC_BankHeist_seed6010_X,4b4w07hb,crashed,Mamba2,AC,BankHeist,6010,X,464.0,0.6089309878213802,50000,retrieved,10,16,0.0625,2026-09-14T07:00:18Z
 Mamba2_AC_Boxing_seed6000_X,8am80ulg,finished,Mamba2,AC,Boxing,6000,X,93.3,7.774999999999999,50000,retrieved,10,16,0.0625,2026-09-14T07:05:33Z
 Mamba2_AC_Boxing_seed6010_X,ygndqe22,finished,Mamba2,AC,Boxing,6010,X,74.0,6.166666666666667,50000,retrieved,10,16,0.0625,2026-09-14T07:51:20Z
 Mamba2_AC_UpNDown_seed710_X,z767yjw0,finished,Mamba2,AC,UpNDown,710,X,6669.0,0.5498207885304659,50000,retrieved,10,16,0.0625,2026-09-14T08:57:32Z

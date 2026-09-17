@@ -125,8 +125,9 @@ def eval_episodes(config,
                         if episode_idx == config.Evaluate.EpisodeNum:
                             # print("Mean reward: " + colorama.Fore.YELLOW + f"{np.mean(score_table['evaluate/score'])}" + colorama.Style.RESET_ALL)
                             for key, value in score_table.items():
-                                if key != 'episode' and not np.array(value).any() == None:
-                                    logger.log(key, np.mean(value), global_step=global_step)
+                                valid_values = [item for item in value if item is not None]
+                                if key != 'episode' and valid_values:
+                                    logger.log(key, np.mean(valid_values), global_step=global_step)
                             return score_table
 
 
