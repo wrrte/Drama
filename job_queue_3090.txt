@@ -1,0 +1,5 @@
+python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/Qbert-v5 --BasicSettings.Seed 2000
+python train.py --BasicSettings.Env_name ALE/UpNDown-v5 --BasicSettings.Seed 2000
