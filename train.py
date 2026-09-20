@@ -232,6 +232,8 @@ def joint_train_world_model_agent(config, logdir,
     
     sum_reward = 0
     current_ob, info = env.reset()
+    at_episode_boundary = True  # A freshly reset environment has no unfinished episode.
+    waiting_to_branch = False
     context_obs = deque(maxlen=config.JointTrainAgent.RealityContextLength)
     context_action = deque(maxlen=config.JointTrainAgent.RealityContextLength)
 
@@ -257,17 +259,23 @@ def joint_train_world_model_agent(config, logdir,
     # sample and train
     for total_steps in tqdm(range(state.get("next_step", 0), config.JointTrainAgent.SampleMaxSteps), desc='Training'):
         is_retrieval_warmup = retrieval_warmup(retrieval_config, total_steps, episode_rewards, state)
+        if retrieval_mode == "Both" and not is_retrieval_warmup and not at_episode_boundary:
+            if not waiting_to_branch:
+                print(colorama.Fore.YELLOW + f"Warmup target reached at step {total_steps}; waiting for the current episode to end before branching." + colorama.Style.RESET_ALL)
+                waiting_to_branch = True
+            # Keep shared training retrieval-free until the episode is complete.
+            is_retrieval_warmup = True
         if retrieval_manager.enabled and not is_retrieval_warmup and not hash_built and replay_buffer.ready():
             world_model.eval()
             retrieval_manager.rebuild_all_hash_buckets(replay_buffer, world_model, chunk_size=1024)
             hash_built = True
             last_rebuild_step = total_steps
             logger.log("Retrieval/warmup_ended_at_step", total_steps, global_step=total_steps)
-        if retrieval_mode == "Both" and not is_retrieval_warmup:
-            # Both branches start a fresh episode; stop contexts crossing that boundary.
-            if replay_buffer.length:
-                replay_buffer.episode_end_buffer[replay_buffer.last_pointer] = True
-            state.update(next_step=total_steps, episode_rewards=list(episode_rewards),
+        if retrieval_mode == "Both" and not is_retrieval_warmup and at_episode_boundary:
+            # The final transition and its training updates are complete. Zero
+            # warmup can branch before the first action without inventing a boundary.
+            logger.log("Retrieval/shared_warmup_ended_at_step", total_steps, global_step=total_steps)
+            state.update(next_step=total_steps, warmup_finished=True, episode_rewards=list(episode_rewards),
                          retrieval=retrieval_manager.state_dict(), last_rebuild_step=last_rebuild_step,
                          hash_built=hash_built)
             checkpoint_dir = str(Path(logdir, "shared_warmup").resolve())
@@ -315,6 +323,7 @@ def joint_train_world_model_agent(config, logdir,
             action = env.action_space.sample()
 
         ob, reward, is_last, info = env.step(action)
+        at_episode_boundary = bool(is_last)
         replay_buffer.append(
             device_obs if replay_buffer.store_on_gpu and device_obs is not None else current_ob,
             device_action if replay_buffer.store_on_gpu and device_action is not None else action,
@@ -414,7 +423,7 @@ def joint_train_world_model_agent(config, logdir,
 
     env.close()
     if retrieval_mode == "Both":
-        raise ValueError("Retrieval warmup did not finish before SampleMaxSteps; no branches could run")
+        raise ValueError("Shared warmup did not reach an episode boundary after the warmup target and before SampleMaxSteps; no branches could run")
     if config.JointTrainAgent.SaveModels or resume_state is not None:
         # Both children must keep their final result even when periodic saves are disabled.
         save_final_models(Path(logdir) / "ckpt", world_model, agent,
