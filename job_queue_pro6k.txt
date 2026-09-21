@@ -1,5 +1,2 @@
-python train.py --BasicSettings.Env_name ALE/RoadRunner-v5 --BasicSettings.Seed 710
-python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 3710
-python train.py --BasicSettings.Env_name ALE/Seaquest-v5 --BasicSettings.Seed 710
 python train.py --BasicSettings.Env_name ALE/UpNDown-v5 --BasicSettings.Seed 1710
 # both 다 끝내는 데 6.5시간
