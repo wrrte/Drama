@@ -209,5 +209,14 @@ Mamba2_AC_Jamesbond_seed2000_X,539llvhs,finished,Mamba2,AC,Jamesbond,2000,X,1325
 Mamba2_AC_RoadRunner_seed710_X,2d5rktim,finished,Mamba2,AC,RoadRunner,710,X,17690,2.2568619941274095,50000,retrieved,10,16,0.0625,2026-09-20T17:42:53Z
 Mamba2_AC_Seaquest_seed3710_O,hl2kr42u,finished,Mamba2,AC,Seaquest,3710,O,778,0.016909995951127726,50000,retrieved,10,16,0.0625,2026-09-20T21:24:33Z
 Mamba2_AC_Seaquest_seed3710_X,x2qi1bci,finished,Mamba2,AC,Seaquest,3710,X,824,0.01800557315359516,50000,retrieved,10,16,0.0625,2026-09-21T01:00:12Z
-Mamba2_AC_MsPacman_seed2000_O,hywaxnxu,running,Mamba2,AC,MsPacman,2000,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-21T02:27:19Z
-Mamba2_AC_Seaquest_seed710_O,j0q6krva,running,Mamba2,AC,Seaquest,710,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-21T04:43:44Z
+Mamba2_AC_MsPacman_seed2000_O,hywaxnxu,finished,Mamba2,AC,MsPacman,2000,O,2322,0.3032355154251317,50000,retrieved,10,16,0.0625,2026-09-21T02:27:19Z
+Mamba2_AC_Seaquest_seed710_O,j0q6krva,finished,Mamba2,AC,Seaquest,710,O,522,0.010812870650439422,50000,retrieved,10,16,0.0625,2026-09-21T04:43:44Z
+Mamba2_AC_Seaquest_seed710_X,3llt8c9p,finished,Mamba2,AC,Seaquest,710,X,714,0.015385714625955652,50000,retrieved,10,16,0.0625,2026-09-21T08:16:53Z
+Mamba2_AC_MsPacman_seed2000_X,66zrs3gp,finished,Mamba2,AC,MsPacman,2000,X,2094,0.26892400300978175,50000,retrieved,10,16,0.0625,2026-09-21T09:18:37Z
+Mamba2_AC_UpNDown_seed1710_O,4g4blfag,finished,Mamba2,AC,UpNDown,1710,O,10098,0.8570788530465949,50000,retrieved,10,16,0.0625,2026-09-21T11:58:38Z
+Mamba2_AC_UpNDown_seed1710_X,czoxatz9,finished,Mamba2,AC,UpNDown,1710,X,8446,0.7090501792114695,50000,retrieved,10,16,0.0625,2026-09-21T15:29:32Z
+Mamba2_AC_PrivateEye_seed2000_O,l7rgmwuu,finished,Mamba2,AC,PrivateEye,2000,O,0,-0.0003594743047766946,50000,retrieved,10,16,0.0625,2026-09-21T18:59:46Z
+Mamba2_AC_ChopperCommand_seed2710_O,gx78qi0n,finished,Mamba2,AC,ChopperCommand,2710,O,2260,0.2203132127109625,50000,retrieved,10,16,0.0625,2026-09-21T19:10:58Z
+Mamba2_AC_ChopperCommand_seed2710_X,z0y36x76,finished,Mamba2,AC,ChopperCommand,2710,X,1450,0.09715675840048654,50000,retrieved,10,16,0.0625,2026-09-21T22:37:21Z
+Mamba2_AC_PrivateEye_seed2000_X,ehm7pwb2,running,Mamba2,AC,PrivateEye,2000,X,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-21T23:50:23Z
+Mamba2_AC_Jamesbond_seed2710_O,xv97695u,running,Mamba2,AC,Jamesbond,2710,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-22T02:22:46Z

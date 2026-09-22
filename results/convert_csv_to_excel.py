@@ -1,4 +1,7 @@
 import argparse
+import ast
+from copy import copy
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -45,8 +48,47 @@ SCORE_DELTA_COLUMN = "Δ Score (행별 비교)"
 HNS_DELTA_COLUMN = "Δ HNS (행별 비교)"
 
 
-def add_paired_comparisons(results, seed_columns):
-    """표시된 X/O 점수의 공통 시드 평균과 논문/target 16 비교를 추가합니다."""
+def load_excluded_seeds():
+    """update_tex.py를 실행하지 않고 현재 EXCLUDED_SEEDS 설정을 읽습니다."""
+    source_path = Path(__file__).resolve().with_name("update_tex.py")
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        if any(isinstance(target, ast.Name) and target.id == "EXCLUDED_SEEDS" for target in targets):
+            return ast.literal_eval(node.value)
+    raise ValueError(f"EXCLUDED_SEEDS 설정을 찾을 수 없습니다: {source_path}")
+
+
+def mark_excluded_seeds(worksheet, results, seed_columns, excluded_seeds):
+    """점수를 보존하면서 제외된 시드의 X/O 셀을 회색과 취소선으로 표시합니다."""
+    excluded_fill = PatternFill(fill_type="solid", fgColor="E7E6E6")
+    for row_index, game in enumerate(results["Game"], start=2):
+        for seed in seed_columns:
+            if int(seed) not in excluded_seeds.get(game, set()):
+                continue
+            cell = worksheet.cell(row=row_index, column=results.columns.get_loc(seed) + 1)
+            font = copy(cell.font)
+            font.strike = True
+            if "RUNNING" not in str(cell.value):
+                cell.fill = excluded_fill
+                font.color = "808080"
+            cell.font = font
+            cell.comment = Comment(
+                f"EXCLUDED_SEEDS: {game}, seed {seed}\n"
+                "Drama/results/update_tex.py의 EXCLUDED_SEEDS에 지정되어 "
+                "공통 시드 평균, Δ Score, Δ HNS 및 LaTeX 결과 집계에서 제외되는 시드입니다.\n"
+                "취소선은 제외된 시드, 노란색 배경은 실행 중인 run을 뜻합니다.",
+                "Drama",
+            )
+
+
+def add_paired_comparisons(results, seed_columns, excluded_seeds):
+    """제외 목록을 반영한 X/O 공통 시드 평균과 논문/target 16 비교를 추가합니다."""
     results = results.copy()
     results[" "] = ""
     for column in (PAPER_SCORE_COLUMN, PAIRED_MEAN_COLUMN, SCORE_DELTA_COLUMN, HNS_DELTA_COLUMN):
@@ -64,8 +106,12 @@ def add_paired_comparisons(results, seed_columns):
         if target_rows.empty:
             continue
         target_index = target_rows[0]
-        baseline = pd.to_numeric(results.loc[baseline_index, seed_columns], errors="coerce")
-        target = pd.to_numeric(results.loc[target_index, seed_columns], errors="coerce")
+        game_seed_columns = [
+            seed for seed in seed_columns
+            if int(seed) not in excluded_seeds.get(game, set())
+        ]
+        baseline = pd.to_numeric(results.loc[baseline_index, game_seed_columns], errors="coerce")
+        target = pd.to_numeric(results.loc[target_index, game_seed_columns], errors="coerce")
         valid = baseline.notna() & target.notna()
         if not valid.any():
             continue
@@ -101,6 +147,7 @@ def main():
     parser.add_argument("--input", default="drama_wandb_runs.csv")
     parser.add_argument("--output", default="drama_results.xlsx")
     args = parser.parse_args()
+    excluded_seeds = load_excluded_seeds()
 
     runs = pd.read_csv(args.input)
     if runs.empty:
@@ -165,7 +212,7 @@ def main():
         results[column] = results[column].map(format_score)
         # 중간 평가 점수가 있어도 RUNNING 셀은 공통 시드 평균에서 제외합니다.
         results.loc[running[column].eq("running"), column] = "RUNNING"
-    results = add_paired_comparisons(results, seed_columns)
+    results = add_paired_comparisons(results, seed_columns, excluded_seeds)
 
     with pd.ExcelWriter(args.output, engine="openpyxl") as writer:
         results.to_excel(writer, sheet_name="Results", index=False)
@@ -203,6 +250,7 @@ def main():
             PAIRED_MEAN_COLUMN: (
                 "X: Retrieval 미사용, O: Retrieval 적용 (target: 16).\n"
                 "양쪽에 유효한 점수가 있는 공통 시드만 사용하며 RUNNING/누락 점수는 제외합니다. "
+                "update_tex.py의 EXCLUDED_SEEDS에 지정된 시드도 제외합니다. "
                 "Drama/results/update_tex.py와 동일하게 표시된 시드 점수를 집계합니다."
             ),
             SCORE_DELTA_COLUMN: (
@@ -212,7 +260,8 @@ def main():
             HNS_DELTA_COLUMN: (
                 "X행: (Retrieval 미사용 평균 − DramaXS 논문 점수) / (Human − Random).\n"
                 "O행: (target: 16 평균 − Retrieval 미사용 평균) / (Human − Random).\n"
-                "모든 평균은 공통 시드 기준입니다. HNS는 Random=0, Human=1 기준이며 "
+                "모든 평균은 EXCLUDED_SEEDS를 제외한 공통 시드 기준입니다. "
+                "HNS는 Random=0, Human=1 기준이며 "
                 "차이의 부호를 유지합니다. 백분율이 아닙니다. "
                 "Random/Human은 STORM 엑셀과 동일한 기준값을 사용합니다."
             ),
@@ -232,6 +281,7 @@ def main():
                     cell.value = "RUNNING"
                     cell.fill = running_fill
                     cell.font = Font(name="Calibri", size=12, bold=True, color="9C6500")
+        mark_excluded_seeds(results_sheet, results, seed_columns, excluded_seeds)
 
         runs_sheet = writer.book["Runs"]
         for row_index, state in enumerate(detail["State"], start=2):

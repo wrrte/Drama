@@ -11,6 +11,9 @@ RESET_TABLE_VALUES = True
 BASE_COLUMN = 6
 OURS_COLUMN = 7
 DELTA_COLUMN = 8
+EXCLUDED_SEEDS = {
+    # 게임별 제외할 시드를 지정합니다. 예: "Frostbite": {10},
+}
 
 
 def parse_val(value):
@@ -215,7 +218,7 @@ def format_drama_values(tex_path):
 
 
 def load_results(excel_path):
-    """Keep both methods' raw scores for the same valid training seeds."""
+    """Keep both methods' raw scores for common, non-excluded training seeds."""
     frame = pd.read_excel(excel_path, sheet_name="Results")
     required = {"Game", "Retrieval"}
     if not required.issubset(frame.columns):
@@ -236,7 +239,8 @@ def load_results(excel_path):
         ours_row = ours.iloc[0]
         common_seeds = [
             seed for seed in seed_columns
-            if not np.isnan(parse_val(baseline_row[seed]))
+            if int(str(seed).strip()) not in EXCLUDED_SEEDS.get(game, set())
+            and not np.isnan(parse_val(baseline_row[seed]))
             and not np.isnan(parse_val(ours_row[seed]))
         ]
         if common_seeds:
