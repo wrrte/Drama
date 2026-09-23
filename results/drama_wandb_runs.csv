@@ -218,5 +218,15 @@ Mamba2_AC_UpNDown_seed1710_X,czoxatz9,finished,Mamba2,AC,UpNDown,1710,X,8446,0.7
 Mamba2_AC_PrivateEye_seed2000_O,l7rgmwuu,finished,Mamba2,AC,PrivateEye,2000,O,0,-0.0003594743047766946,50000,retrieved,10,16,0.0625,2026-09-21T18:59:46Z
 Mamba2_AC_ChopperCommand_seed2710_O,gx78qi0n,finished,Mamba2,AC,ChopperCommand,2710,O,2260,0.2203132127109625,50000,retrieved,10,16,0.0625,2026-09-21T19:10:58Z
 Mamba2_AC_ChopperCommand_seed2710_X,z0y36x76,finished,Mamba2,AC,ChopperCommand,2710,X,1450,0.09715675840048654,50000,retrieved,10,16,0.0625,2026-09-21T22:37:21Z
-Mamba2_AC_PrivateEye_seed2000_X,ehm7pwb2,running,Mamba2,AC,PrivateEye,2000,X,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-21T23:50:23Z
-Mamba2_AC_Jamesbond_seed2710_O,xv97695u,running,Mamba2,AC,Jamesbond,2710,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-22T02:22:46Z
+Mamba2_AC_PrivateEye_seed2000_X,ehm7pwb2,finished,Mamba2,AC,PrivateEye,2000,X,100,0.0010784229143300835,50000,retrieved,10,16,0.0625,2026-09-21T23:50:23Z
+Mamba2_AC_Jamesbond_seed2710_O,xv97695u,finished,Mamba2,AC,Jamesbond,2710,O,615,2.1386861313868613,50000,retrieved,10,16,0.0625,2026-09-22T02:22:46Z
+Mamba2_AC_Jamesbond_seed2710_X,00v05vqb,finished,Mamba2,AC,Jamesbond,2710,X,520,1.791970802919708,50000,retrieved,10,16,0.0625,2026-09-22T05:21:51Z
+Mamba2_AC_Boxing_seed2710_O,dowz1e7e,finished,Mamba2,AC,Boxing,2710,O,24.1,2.0083333333333333,50000,retrieved,10,16,0.0625,2026-09-22T09:03:10Z
+Mamba2_AC_Qbert_seed2000_O,odiij089,finished,Mamba2,AC,Qbert,2000,O,3857.5,0.27789481604092997,50000,retrieved,10,16,0.0625,2026-09-22T09:22:56Z
+Mamba2_AC_Boxing_seed2710_X,0s6oaqrv,finished,Mamba2,AC,Boxing,2710,X,25.8,2.15,50000,retrieved,10,16,0.0625,2026-09-22T12:27:42Z
+Mamba2_AC_Qbert_seed2000_X,yp4258u6,finished,Mamba2,AC,Qbert,2000,X,3930,0.2833496350914152,50000,retrieved,10,16,0.0625,2026-09-22T15:03:20Z
+Mamba2_AC_Hero_seed2710_O,67ri9q27,finished,Mamba2,AC,Hero,2710,O,7488,0.21681935635424007,50000,retrieved,10,16,0.0625,2026-09-22T16:10:47Z
+Mamba2_AC_Hero_seed2710_X,j1qqfmf6,finished,Mamba2,AC,Hero,2710,X,3622.5,0.08710023826302896,50000,retrieved,10,16,0.0625,2026-09-22T19:02:06Z
+Mamba2_AC_BattleZone_seed2710_O,hva0dn9v,finished,Mamba2,AC,BattleZone,2710,O,4300,0.0557023084874239,50000,retrieved,10,16,0.0625,2026-09-22T22:45:03Z
+Mamba2_AC_UpNDown_seed2000_O,v31w762m,running,Mamba2,AC,UpNDown,2000,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-23T00:39:20Z
+Mamba2_AC_BattleZone_seed2710_X,wp5x6x5i,finished,Mamba2,AC,BattleZone,2710,X,8100,0.1648099230504192,50000,retrieved,10,16,0.0625,2026-09-23T01:10:23Z

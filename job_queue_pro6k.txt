@@ -1,0 +1,2 @@
+python train.py --BasicSettings.Env_name ALE/Gopher-v5 --BasicSettings.Seed 2710
+python train.py --BasicSettings.Env_name ALE/Krull-v5 --BasicSettings.Seed 2710
