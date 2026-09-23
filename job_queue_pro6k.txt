@@ -1,3 +1,0 @@
-python train.py --BasicSettings.Env_name ALE/Boxing-v5 --BasicSettings.Seed 2710
-python train.py --BasicSettings.Env_name ALE/Hero-v5 --BasicSettings.Seed 2710
-python train.py --BasicSettings.Env_name ALE/BattleZone-v5 --BasicSettings.Seed 2710
