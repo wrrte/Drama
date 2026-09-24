@@ -42,6 +42,7 @@ JointTrainAgent:
 
   Retrieval:
     enable: Both # True, False, or "Both": shared warmup, then finish _O before starting _X
+    save_warmup: False # Save reusable warmup even for True/False, then continue; resume with --resume_from
     batch_size_reduction: "retrieved" # anchors, retrieved, or half
     trigger_mode: "z_score" # absolute or z_score
     threshold: 1.0
@@ -51,7 +52,7 @@ JointTrainAgent:
     hash_sample_mode: "probs"
     use_pca: True
     max_pca_samples: 100000
-    warmup_steps: 50000 # Both splits before this step; -1 enables dynamic warmup
+    warmup_steps: 50000 # Both/save_warmup split at the first episode boundary at/after this step; -1 enables dynamic warmup
     min_warmup_steps: 5000
     dynamic_warmup_target_steps: 20000
     max_warmup_steps: 90000

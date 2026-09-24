@@ -35,12 +35,12 @@ from training_checkpoint import save_branch_checkpoint, load_branch_checkpoint
 
 def retrieval_warmup(config, step, episode_rewards, state):
     warmup_steps = int(config.get("warmup_steps", 50000))
-    if warmup_steps >= 0:
-        return step < warmup_steps
-    if warmup_steps != -1:
+    if warmup_steps < -1:
         raise ValueError("Retrieval.warmup_steps must be nonnegative or -1 for dynamic warmup")
     if state.get("warmup_finished", False):
         return False
+    if warmup_steps >= 0:
+        return step < warmup_steps
     if step >= config.get("max_warmup_steps", 90000):
         state["warmup_finished"] = True
     elif step >= config.get("min_warmup_steps", 5000):
@@ -242,7 +242,8 @@ def joint_train_world_model_agent(config, logdir,
     retrieval_config = dict(config.JointTrainAgent.get("Retrieval", {"enable": False}))
     retrieval_config["context_length"] = config.JointTrainAgent.ImagineContextLength
     retrieval_mode = parse_retrieval_mode(retrieval_config.get("enable", False))
-    disabled_rng = capture_rng_state() if retrieval_mode is False else None
+    shared_warmup = retrieval_mode == "Both" or retrieval_config.get("save_warmup", False)
+    disabled_rng = capture_rng_state() if retrieval_mode is False and not shared_warmup else None
     retrieval_manager = RetrievalContextManager(
         num_envs=1, config=retrieval_config,
         latent_dim=config.Models.WorldModel.CategoricalDim * config.Models.WorldModel.ClassDim,
@@ -259,7 +260,7 @@ def joint_train_world_model_agent(config, logdir,
     # sample and train
     for total_steps in tqdm(range(state.get("next_step", 0), config.JointTrainAgent.SampleMaxSteps), desc='Training'):
         is_retrieval_warmup = retrieval_warmup(retrieval_config, total_steps, episode_rewards, state)
-        if retrieval_mode == "Both" and not is_retrieval_warmup and not at_episode_boundary:
+        if shared_warmup and not is_retrieval_warmup and not at_episode_boundary:
             if not waiting_to_branch:
                 print(colorama.Fore.YELLOW + f"Warmup target reached at step {total_steps}; waiting for the current episode to end before branching." + colorama.Style.RESET_ALL)
                 waiting_to_branch = True
@@ -271,7 +272,7 @@ def joint_train_world_model_agent(config, logdir,
             hash_built = True
             last_rebuild_step = total_steps
             logger.log("Retrieval/warmup_ended_at_step", total_steps, global_step=total_steps)
-        if retrieval_mode == "Both" and not is_retrieval_warmup and at_episode_boundary:
+        if shared_warmup and not is_retrieval_warmup and at_episode_boundary:
             # The final transition and its training updates are complete. Zero
             # warmup can branch before the first action without inventing a boundary.
             logger.log("Retrieval/shared_warmup_ended_at_step", total_steps, global_step=total_steps)
@@ -280,6 +281,7 @@ def joint_train_world_model_agent(config, logdir,
                          hash_built=hash_built)
             checkpoint_dir = str(Path(logdir, "shared_warmup").resolve())
             save_branch_checkpoint(checkpoint_dir, config, world_model, agent, replay_buffer, state)
+            print(f"Reusable warmup saved: {checkpoint_dir} (--resume_from)", flush=True)
             env.close()
             return checkpoint_dir
         # sample part >>>
@@ -422,7 +424,7 @@ def joint_train_world_model_agent(config, logdir,
         _ = eval_episodes(config, world_model, agent, logger, config.JointTrainAgent.SampleMaxSteps)
 
     env.close()
-    if retrieval_mode == "Both":
+    if shared_warmup:
         raise ValueError("Shared warmup did not reach an episode boundary after the warmup target and before SampleMaxSteps; no branches could run")
     if config.JointTrainAgent.SaveModels or resume_state is not None:
         # Both children must keep their final result even when periodic saves are disabled.
@@ -487,8 +489,8 @@ class DotDict(dict):
         d[keys[-1]] = value
 
 # Function to parse and update config from arguments
-def parse_args_and_update_config(config, prefix='', argv=None):
-    parser = argparse.ArgumentParser()
+def parse_args_and_update_config(config, prefix='', argv=None, parents=()):
+    parser = argparse.ArgumentParser(parents=list(parents))
 
     # Map string dtype to torch dtype
     def dtype_mapper(dtype_str):
@@ -534,6 +536,66 @@ def parse_args_and_update_config(config, prefix='', argv=None):
     
     return config
 
+
+def parse_training_args(config, argv=None):
+    """Load a saved run's configuration before applying explicit CLI overrides."""
+    parser = argparse.ArgumentParser(add_help=False)
+    resume = parser.add_mutually_exclusive_group()
+    resume.add_argument('--resume_from', help='Resume a Drama shared_warmup checkpoint directory')
+    resume.add_argument('--branch_checkpoint', help=argparse.SUPPRESS)
+    parser.add_argument('--branch_mode', type=parse_retrieval_mode, help=argparse.SUPPRESS)
+    args, config_args = parser.parse_known_args(argv)
+    if args.branch_checkpoint:
+        if args.branch_mode not in (True, False):
+            raise ValueError('--branch_checkpoint requires --branch_mode True or False')
+    elif args.branch_mode is not None:
+        raise ValueError('--branch_mode requires --branch_checkpoint')
+    args.resume_from = args.resume_from or args.branch_checkpoint
+    if args.resume_from:
+        args.resume_from = str(Path(args.resume_from).expanduser().resolve())
+        config = torch.load(Path(args.resume_from) / 'config.pt', map_location='cpu', weights_only=False)
+        for suffix in ('_Both', '_Shared', '_O', '_X'):
+            if config['n'].endswith(suffix):
+                config['n'] = config['n'][:-len(suffix)]
+                break
+    # Older Both checkpoints predate this option.
+    retrieval_config = config['JointTrainAgent'].setdefault('Retrieval', {})
+    retrieval_config.setdefault('enable', False)
+    retrieval_config.setdefault('save_warmup', False)
+    config = parse_args_and_update_config(config, argv=config_args, parents=(parser,))
+    retrieval_config = config['JointTrainAgent']['Retrieval']
+    if args.resume_from:
+        # A resumed run must not save and relaunch itself again.
+        retrieval_config['save_warmup'] = False
+    if args.branch_checkpoint:
+        retrieval_config['enable'] = args.branch_mode
+    mode = parse_retrieval_mode(retrieval_config['enable'])
+    retrieval_config['enable'] = mode
+    shared_warmup = mode == 'Both' or retrieval_config['save_warmup']
+    suffix = '_Both' if mode == 'Both' else ('_Shared' if shared_warmup else ('_O' if mode else '_X'))
+    config['n'] += suffix
+    if config['JointTrainAgent']['NumEnvs'] != 1:
+        raise ValueError('Drama training uses one environment; JointTrainAgent.NumEnvs must be 1')
+    warmup_steps = retrieval_config.get('warmup_steps', 50000)
+    if warmup_steps < -1:
+        raise ValueError('Retrieval.warmup_steps must be nonnegative or -1')
+    if shared_warmup and warmup_steps >= config['JointTrainAgent']['SampleMaxSteps']:
+        raise ValueError('Shared warmup requires Retrieval.warmup_steps < JointTrainAgent.SampleMaxSteps')
+    if retrieval_config.get('batch_size_reduction', 'retrieved') not in ('anchors', 'retrieved', 'half'):
+        raise ValueError('Retrieval.batch_size_reduction must be anchors, retrieved, or half')
+    return config, args
+
+
+def launch_warmup_branches(checkpoint_dir, mode):
+    command = [sys.executable, str(Path(__file__).resolve()), '--branch_checkpoint', checkpoint_dir]
+    if mode == 'Both':
+        launch_training_branches(checkpoint_dir, command + ['--branch_mode', 'True'],
+                                 command + ['--branch_mode', 'False'])
+    else:
+        name = 'retrieval' if mode else 'baseline'
+        launch_training_branches(checkpoint_dir, experiments={name: command + ['--branch_mode', str(mode)]})
+
+
 def update_model_parameters(config, world_model, agent):
     config.update_or_create('Models.WorldModel.TotalParamNum', sum([p.numel() for p in world_model.parameters()]))
     print(f'World model total parameters: {sum([p.numel() for p in world_model.parameters()]):,}')
@@ -563,38 +625,12 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
     warnings.filterwarnings("ignore")
 
-    internal_parser = argparse.ArgumentParser(add_help=False)
-    internal_parser.add_argument('--branch_checkpoint', default=None)
-    internal_parser.add_argument('--branch_mode', type=parse_retrieval_mode, default=None)
-    branch_args, config_args = internal_parser.parse_known_args()
-
     with open(Path(__file__).resolve().parent / 'config_files/configure.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
-    config = parse_args_and_update_config(config, argv=config_args)
-    if branch_args.branch_checkpoint:
-        # The exact effective parent config is authoritative for both children.
-        config = torch.load(Path(branch_args.branch_checkpoint) / 'config.pt', map_location='cpu', weights_only=False)
-        if branch_args.branch_mode not in (True, False):
-            raise ValueError('--branch_checkpoint requires --branch_mode True or False')
-        config['JointTrainAgent']['Retrieval']['enable'] = branch_args.branch_mode
-        config['n'] = config['n'].removesuffix('_Both')
-    elif branch_args.branch_mode is not None:
-        raise ValueError('--branch_mode requires --branch_checkpoint')
-    mode = parse_retrieval_mode(config['JointTrainAgent'].get('Retrieval', {}).get('enable', False))
-    config['JointTrainAgent'].setdefault('Retrieval', {})['enable'] = mode
-    config['n'] += '_Both' if mode == 'Both' else ('_O' if mode else '_X')
+    config, training_args = parse_training_args(config)
+    mode = config['JointTrainAgent']['Retrieval']['enable']
     config = DotDict(config)
-    if config.JointTrainAgent.NumEnvs != 1:
-        raise ValueError('Drama training uses one environment; JointTrainAgent.NumEnvs must be 1')
-    warmup_steps = config.JointTrainAgent.Retrieval.get('warmup_steps', 50000)
-    if warmup_steps < -1:
-        raise ValueError('Retrieval.warmup_steps must be nonnegative or -1')
-    if mode == 'Both' and warmup_steps >= config.JointTrainAgent.SampleMaxSteps:
-        raise ValueError('Both requires Retrieval.warmup_steps < JointTrainAgent.SampleMaxSteps')
-    reduction = config.JointTrainAgent.Retrieval.get('batch_size_reduction', 'retrieved')
-    if reduction not in ('anchors', 'retrieved', 'half'):
-        raise ValueError('Retrieval.batch_size_reduction must be anchors, retrieved, or half')
 
     device = torch.device(config.BasicSettings.Device)
     # set seed
@@ -626,7 +662,7 @@ if __name__ == "__main__":
     if (config.BasicSettings.Compile and os.name != "nt"):  # compilation is not supported on windows
         world_model = torch.compile(world_model)
         agent = torch.compile(agent)
-    if config.BasicSettings.SavePath != 'None' and not branch_args.branch_checkpoint:
+    if config.BasicSettings.SavePath != 'None' and not training_args.resume_from:
         print('Loading models')
         world_model.load_state_dict(torch.load(f"{config.BasicSettings.SavePath}/world_model.pth"))
         agent.load_state_dict(torch.load(f"{config.BasicSettings.SavePath}/agent.pth"))
@@ -642,12 +678,13 @@ if __name__ == "__main__":
         is_discrete=is_discrete
     )
     resume_state = resume_rng = None
-    if branch_args.branch_checkpoint:
-        resume_state, resume_rng = load_branch_checkpoint(branch_args.branch_checkpoint, world_model, agent, replay_buffer)
+    if training_args.resume_from:
+        resume_state, resume_rng = load_branch_checkpoint(training_args.resume_from, world_model, agent, replay_buffer)
+        print(f"Resuming training from {training_args.resume_from} at step {resume_state['next_step']}")
         Path(logdir).mkdir(parents=True, exist_ok=True)
         import json
         Path(logdir, 'shared_warmup.json').write_text(json.dumps({
-            'checkpoint': str(Path(branch_args.branch_checkpoint).resolve()),
+            'checkpoint': training_args.resume_from,
             'next_step': resume_state['next_step'], 'retrieval_enabled': mode,
             'environment_reset': True,
         }, indent=2))
@@ -658,7 +695,4 @@ if __name__ == "__main__":
 
     logger.close()
     if checkpoint_dir:
-        command = [sys.executable, str(Path(__file__).resolve()), *config_args,
-                   '--branch_checkpoint', checkpoint_dir]
-        launch_training_branches(checkpoint_dir, command + ['--branch_mode', 'True'],
-                                 command + ['--branch_mode', 'False'])
+        launch_warmup_branches(checkpoint_dir, mode)
