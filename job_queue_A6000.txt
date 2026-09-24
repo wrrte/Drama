@@ -1,11 +1,4 @@
-#아래 항목들을 안 겹치는 시드로 학습하깅
 
-python train.py --BasicSettings.Env_name ALE/ChopperCommand-v5 --BasicSettings.Seed 2710
+python train.py --BasicSettings.Env_name ALE/Freeway-v5 --BasicSettings.Seed 6000 --JointTrainAgent.Retrieval.enable True --JointTrainAgent.Retrieval.save_warmup True
 
-
-python train.py --BasicSettings.Env_name ALE/Jamesbond-v5 --BasicSettings.Seed 2710
-
-python train.py --BasicSettings.Env_name ALE/MsPacman-v5 --BasicSettings.Seed 2710
-python train.py --BasicSettings.Env_name ALE/PrivateEye-v5 --BasicSettings.Seed 2710
-python train.py --BasicSettings.Env_name ALE/Qbert-v5 --BasicSettings.Seed 2710
-python train.py --BasicSettings.Env_name ALE/UpNDown-v5 --BasicSettings.Seed 2710
+python train.py --BasicSettings.Env_name ALE/Frostbite-v5 --BasicSettings.Seed 6010 --JointTrainAgent.Retrieval.enable True --JointTrainAgent.Retrieval.save_warmup True
