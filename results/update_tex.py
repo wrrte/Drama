@@ -13,9 +13,10 @@ OURS_COLUMN = 7
 DELTA_COLUMN = 8
 EXCLUDED_SEEDS = {
     "BattleZone": {2710},
-    "Boxing": {2710},
+    "Boxing": {2710, 6010},
     "ChopperCommand": {1710},
     "Frostbite": {710},
+    "Gopher": {2000},
     "Hero": {2010},
     "Jamesbond": {2000},
     
