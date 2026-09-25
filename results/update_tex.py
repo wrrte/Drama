@@ -19,6 +19,7 @@ EXCLUDED_SEEDS = {
     "Gopher": {2000},
     "Hero": {2010},
     "Jamesbond": {2000},
+    "Krull": {710},
     
 }
 

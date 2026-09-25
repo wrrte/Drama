@@ -238,4 +238,7 @@ Mamba2_AC_Gopher_seed2710_X,3crb4hx0,finished,Mamba2,AC,Gopher,2710,X,2896,1.224
 Mamba2_AC_Krull_seed2000_O,mjjum96z,finished,Mamba2,AC,Krull,2000,O,11093,8.890449438202248,50000,retrieved,10,16,0.0625,2026-09-23T22:04:05Z
 Mamba2_AC_Krull_seed2000_X,21ijqipq,finished,Mamba2,AC,Krull,2000,X,9036,6.964419475655431,50000,retrieved,10,16,0.0625,2026-09-24T05:00:37Z
 Mamba2_AC_Freeway_seed2710_O,2jq03pji,finished,Mamba2,AC,Freeway,2710,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-24T08:30:45Z
-Mamba2_AC_Freeway_seed2710_O,m3lhpghb,running,Mamba2,AC,Freeway,2710,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-24T10:24:12Z
+Mamba2_AC_Freeway_seed2710_O,m3lhpghb,finished,Mamba2,AC,Freeway,2710,O,32.2,1.0733333333333337,50000,retrieved,10,16,0.0625,2026-09-24T10:24:12Z
+Mamba2_AC_Frostbite_seed2000_O,d4ugqlay,finished,Mamba2,AC,Frostbite,2000,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-24T12:02:11Z
+Mamba2_AC_Frostbite_seed2000_O,9t3x82mf,finished,Mamba2,AC,Frostbite,2000,O,1291,0.2871194379391101,50000,retrieved,10,16,0.0625,2026-09-24T17:14:32Z
+Mamba2_AC_Freeway_seed2030_Both,khvdesdy,running,Mamba2,AC,Freeway,2030,BOTH,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-25T01:54:54Z
