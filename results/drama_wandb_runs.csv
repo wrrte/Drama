@@ -241,4 +241,9 @@ Mamba2_AC_Freeway_seed2710_O,2jq03pji,finished,Mamba2,AC,Freeway,2710,O,N/A,N/A,
 Mamba2_AC_Freeway_seed2710_O,m3lhpghb,finished,Mamba2,AC,Freeway,2710,O,32.2,1.0733333333333337,50000,retrieved,10,16,0.0625,2026-09-24T10:24:12Z
 Mamba2_AC_Frostbite_seed2000_O,d4ugqlay,finished,Mamba2,AC,Frostbite,2000,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-24T12:02:11Z
 Mamba2_AC_Frostbite_seed2000_O,9t3x82mf,finished,Mamba2,AC,Frostbite,2000,O,1291,0.2871194379391101,50000,retrieved,10,16,0.0625,2026-09-24T17:14:32Z
-Mamba2_AC_Freeway_seed2030_Both,khvdesdy,running,Mamba2,AC,Freeway,2030,BOTH,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-25T01:54:54Z
+Mamba2_AC_Freeway_seed2710_X,vpxa1ak7,finished,Mamba2,AC,Freeway,2710,X,31.3,1.0433333333333334,50000,retrieved,10,16,0.0625,2026-09-25T05:19:37Z
+Mamba2_AC_Freeway_seed2030_O,l96lmgvj,finished,Mamba2,AC,Freeway,2030,O,0,0,50000,retrieved,10,16,0.0625,2026-09-25T06:47:19Z
+Mamba2_AC_Freeway_seed2030_X,1fcphg7b,finished,Mamba2,AC,Freeway,2030,X,0,0,50000,retrieved,10,16,0.0625,2026-09-25T13:15:51Z
+Mamba2_AC_Freeway_seed2040_O,4ukadgjv,finished,Mamba2,AC,Freeway,2040,O,0,0,50000,retrieved,10,16,0.0625,2026-09-25T17:11:38Z
+Mamba2_AC_BankHeist_seed2000_O,ld1pwoi6,running,Mamba2,AC,BankHeist,2000,O,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-25T22:43:42Z
+Mamba2_AC_Freeway_seed2040_X,pguxxdyy,running,Mamba2,AC,Freeway,2040,X,N/A,N/A,50000,retrieved,10,16,0.0625,2026-09-25T23:28:04Z
