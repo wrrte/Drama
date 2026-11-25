@@ -1,0 +1,63 @@
+Row,Method,Paper,Reproduced,Matches
+Alien,DRAMA,1051.5,1051.5,True
+Alien,Full FLASH,972.2,972.2,True
+Amidar,DRAMA,140.3,140.3,True
+Amidar,Full FLASH,130.2,130.2,True
+Assault,DRAMA,383.5,383.5,True
+Assault,Full FLASH,449.9,449.9,True
+Asterix,DRAMA,1680,1680,True
+Asterix,Full FLASH,1397.5,1397.5,True
+BankHeist,DRAMA,458.8,458.8,True
+BankHeist,Full FLASH,278.8,278.8,True
+BattleZone,DRAMA,10775,10775,True
+BattleZone,Full FLASH,8600,8600,True
+Boxing,DRAMA,63.2,63.2,True
+Boxing,Full FLASH,75.3,75.3,True
+Breakout,DRAMA,14.7,14.7,True
+Breakout,Full FLASH,16.6,16.6,True
+ChopperCommand,DRAMA,1382.5,1382.5,True
+ChopperCommand,Full FLASH,1550,1550,True
+CrazyClimber,DRAMA,76802.5,76802.5,True
+CrazyClimber,Full FLASH,74437.5,74437.5,True
+DemonAttack,DRAMA,187.2,187.2,True
+DemonAttack,Full FLASH,151,151,True
+Freeway,DRAMA,15.7,15.7,True
+Freeway,Full FLASH,16.1,16.1,True
+Frostbite,DRAMA,1311.5,1311.5,True
+Frostbite,Full FLASH,1319.2,1319.2,True
+Gopher,DRAMA,1934.5,1934.5,True
+Gopher,Full FLASH,2187.5,2187.5,True
+Hero,DRAMA,7949.8,7949.8,True
+Hero,Full FLASH,7987.1,7987.1,True
+Jamesbond,DRAMA,428.8,428.8,True
+Jamesbond,Full FLASH,535,535,True
+Kangaroo,DRAMA,1350,1350,True
+Kangaroo,Full FLASH,1335,1335,True
+Krull,DRAMA,9076,9076,True
+Krull,Full FLASH,9569,9569,True
+KungFuMaster,DRAMA,16480,16480,True
+KungFuMaster,Full FLASH,16137.5,16137.5,True
+MsPacman,DRAMA,2460.2,2460.2,True
+MsPacman,Full FLASH,2525.2,2525.2,True
+Pong,DRAMA,8.8,8.8,True
+Pong,Full FLASH,14.7,14.7,True
+PrivateEye,DRAMA,100,100,True
+PrivateEye,Full FLASH,-4.9,-4.9,True
+Qbert,DRAMA,1446.2,1446.2,True
+Qbert,Full FLASH,1496.2,1496.2,True
+RoadRunner,DRAMA,11812.5,11812.5,True
+RoadRunner,Full FLASH,12537.5,12537.5,True
+Seaquest,DRAMA,626,626,True
+Seaquest,Full FLASH,558,558,True
+UpNDown,DRAMA,5269.5,5269.5,True
+UpNDown,Full FLASH,6038.8,6038.8,True
+#Superhuman,DRAMA,5,5,True
+#Superhuman,Full FLASH,6,6,True
+Mean,DRAMA,0.948,0.948,True
+Mean,Full FLASH,1.027,1.027,True
+Median,DRAMA,0.374,0.374,True
+Median,Full FLASH,0.394,0.394,True
+IQM,DRAMA,0.374,0.374,True
+IQM,Full FLASH,0.390,0.390,True
+Optimality Gap,DRAMA,0.547,0.547,True
+Optimality Gap,Full FLASH,0.540,0.540,True

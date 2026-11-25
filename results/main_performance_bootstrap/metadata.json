@@ -1,0 +1,37 @@
+{
+  "comparison": "DRAMA baseline vs Full FLASH; paper main performance",
+  "games": 26,
+  "seed_pairs": 102,
+  "games_by_seed_count": {
+    "4": 25,
+    "2": 1
+  },
+  "confidence": 0.95,
+  "replicates": 50000,
+  "seed": 2027,
+  "resampling": "Paired training-seed draws within each of 26 fixed games; percentile CI",
+  "delta": "Full FLASH minus DRAMA; lower Optimality Gap is better",
+  "normalization": "(score - random) / (human - random); no clipping",
+  "metrics": {
+    "Mean": "Equal-weight mean across game mean HNS",
+    "Median": "Median across game mean HNS",
+    "IQM": "Pool seed HNS, sort and discard floor(N/4) at each tail, as in the paper; games with more seeds have more weight",
+    "Optimality Gap": "Equal-weight mean across games of max(0, 1 - game mean HNS)"
+  },
+  "notes": [
+    "Evaluation episode means are the observations; episodes are not bootstrapped as independent training runs.",
+    "Intervals are pointwise and conditional on the selected paper seeds and fixed benchmark games.",
+    "Paper-rounded displayed scores are checked for reproduction; calculations use unrounded seed scores.",
+    "Freeway uses seeds 2030 and 2710 (two pairs); all other games have four pairs.",
+    "Krull uses seeds 1710, 2000, 3710 and 6000; the six Freeway/Krull scores missing from the workbook come from frozen W&B summaries.",
+    "185 selected scores matched W&B evaluate/score; 19 have only Excel/CSV score verification.",
+    "Freeway seed 2030, rather than the identical zero-score seed 2040, is inferred from the paper commit and run timestamps."
+  ],
+  "method_reference": "https://github.com/google-research/rliable/blob/master/rliable/library.py",
+  "inputs": {
+    "/mnt/hdd_4A/choemj/Drama/results/main_performance_sources.json": "7225c54c302e8fcb56702b6a646e4b4832d16320927fea0f67869068c0362f30",
+    "/mnt/hdd_4A/choemj/iclr2027_conference.tex": "c2e8e8931ffb9f85c4c9fbba0cce981f954cb10d81a4f22e00e157ce097930ad",
+    "/mnt/hdd_4A/choemj/Drama/results/drama_results.xlsx": "856e40a49dace765f431c7306b7a031f2d11315fea288cde98834e7d8606e35b",
+    "/mnt/hdd_4A/choemj/Drama/results/drama_wandb_runs.csv": "8a339aec45c6fbe3a106b9a9c2c07d7d35b629d6edd464215e132300544d8898"
+  }
+}
